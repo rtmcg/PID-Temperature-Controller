@@ -11,6 +11,9 @@ import numpy     as _n
 import datetime  as _dt
 import struct    as _struct
 import threading as _threading
+import time      as _time
+
+_debug = False
 
 class arduino:
     """
@@ -26,10 +29,10 @@ class arduino:
     """
 
 
-    def __init__(self, port = 'COM3', verbose=0):
+    def __init__(self, port = 'COM3', verbose = True):
         
-        self.verbose = verbose
-        self.running = False    # When not running
+        self._verbose = verbose
+        self.running  = False     # When not running
 
         self.mainStorage   = []   # Storage for arduino data
         self.headerTable   = []   # Storage for recorded variables
@@ -40,35 +43,37 @@ class arduino:
         self.initVarCount = 0 # Counts initial variables
         self.recVarCount  = 0 # Recorded variable counts
 
-        if self.verbose: print("ARDUINO, VERBOSE MODE ACTIVATED\n")        
-        print("\n\nInitializing serial object\n")
+        if self._verbose: print("Verbose mode activated.")        
+        print("\nAttempting to open serial port...")
 
         # Try opening the port
         try:
             self.device = _serial.Serial(port, baudrate = 115200, timeout = 1.0)
-            print(f"Found device at {port} \n")
+            print(f"Found device at {port}. \n")
         except:
             raise Exception(f"Unable to connect to Arduino at " + port + ". Check that it's plugged in and the drivers are properly installed.")
-               
         
-        self.device.reboot() # Reboot the arduino
+        self.reboot() # Reboot the arduino (as a precaution?)
+        if self._verbose: print("Buffer contents before Handshake: ",self.device.read(100))
 
-        for attempts in range(0,15):
+        for attempt in range(1,10):
             # Attempt handshake protocol with the arduino
             try:
-                if self.verbose: print("Attempting handshake.")
-                self.send("HANDSHAKE\n")
-                resp = resp.getResp().replace("\t","") # readline from arduino & get rid of tabs
-
-                if resp == "HANDSHAKE": # if get this from arduino
+                self.send("HANDSHAKE")
+                resp = self.getResp().replace("\t","") # readline from arduino & get rid of tabs
+                
+                if self._verbose: print("Arduino handshake response on attempt %d: %s"%(attempt,repr(resp)))
+                
+                if resp == "HANDSHAKE": # If get this from arduino
                     print("Successful handshake, Arduino and Python are communicating.\n") 
                     break 
             except: # If no response is received 
-                if self.verbose: print("No response recieved.") 
+                if self._verbose: print("No response recieved.\n") 
             
-            if attempts == 14: # after 15 attempts
-                self.device.close() # close port, print exception and leave loop
-                raise Exception(f"\nUnable to handshake with Arduino...{attempts} exceptions")  
+            if attempt == 10: # Too many attempts
+                # Close port, print exception.
+                self.device.close() 
+                raise Exception(f"\nUnable to handshake with Arduino. Ask Technician for help.")  
 
         # Get the initial variables from the arduino
         self.getInitVar() 
@@ -81,10 +86,15 @@ class arduino:
         """
         Reboots the arduino by toggling the dtr line.
         """
+        if _debug: print("Rebooting arduino by dtr toggle.\n")
 
+        # Toggle the dtr line
         self.device.dtr = True 
         self.device.dtr = False
-        self.device.dtr = True   
+        self.device.dtr = True  
+
+        # Sleep to give the arduino time to run its setup routine
+        _time.sleep(1) 
 
 
     def send(self,message):
@@ -99,7 +109,7 @@ class arduino:
         """
         message = message + '\n' # Add a newline, since arduino code expects it
         self.device.write(message.encode()) # Encode string to bytes and write to serial port
-        if self.verbose: print(f"\nSent '{message}'\n")
+        if _debug: print("Send: " + repr(message) )
    
      
     def getResp(self):
@@ -109,11 +119,11 @@ class arduino:
 
         # Readline from serial port, using latin-1 (iso-8859-1 for single bytes)
         message = self.device.readline().decode('ISO-8859-1', errors='ignore')
-        
+
         # Clean up the message
         message = message.split('\r\n')[0].replace('\n', '')
+        if _debug: print("Received: %s "%repr(message))
 
-        if self.verbose: print(f"Raw resp: '{message}' ")
         return message
     
         
@@ -122,7 +132,7 @@ class arduino:
         Get the initial variables defined in the Arduino code.
         """
 
-        if self.verbose : print("\nAcquiring INIT variables from Arduino.\n")
+        if self._verbose : print("Acquiring INIT variables from Arduino.\n")
         rowCount = 0
         outputArry = []
         trying = True     # Run condition
@@ -138,10 +148,10 @@ class arduino:
                 
             elif (rawVar == "READY"):               # Indicates all INIT variables have been sent
                 trying = False                      # Change run condition
-                print("\nINIT variables acquired: ")
+                print("INIT variables acquired: ")
                 outputArry = _n.reshape(outputArry, (rowCount-1,4))     # Minus 1 because there's a junk line to remove
                 for i in outputArry:
-                    i[2] = self.convertHexToDec(i[2])                   # Convert the values from hex float to dec float
+                    i[2] = convertHexToDec(i[2])                   # Convert the values from hex float to dec float
                 print(outputArry)   
                 self.initVar = outputArry # initial variables set to output array
                 self.initVarCount = rowCount-1 # counts initial variables            
@@ -153,7 +163,7 @@ class arduino:
         This is not used for the INIT variables.
         """
         run = 0                                  # Running condition for the while loop
-        if self.verbose: print("CREATING LABEL TABLES")
+        if self._verbose: print("CREATING LABEL TABLES")
         while run == 0:
             line = self.getResp()                # Read line of data
             line = line.split("\t")              # Split data by tab 
@@ -161,8 +171,8 @@ class arduino:
             if (line[0] =="VALUE"):              # Lines with VALUE in the first position represent the recorded variables
                 self.headerTable.append(line[1]) # Index one is where the variable names are stored
                 self.unitTable.append(line[4])   # Index four is where the variale's units are stored
-                if self.verbose : print("Header Table: ", self.headerTable)
-                if self.verbose : print("Unit Table: ", self.unitTable)
+                if self._verbose : print("Header Table: ", self.headerTable)
+                if self._verbose : print("Unit Table: ", self.unitTable)
             elif (line[0] == "INDEX"):           # If it begins with INDEX, then one full block has been completed
                 run = 1 
                 self.headerTable.append('Time Index')   # add to header table
@@ -197,7 +207,7 @@ class arduino:
             if attemptCount == 5: # if doesn't clear junk after 5 tries, raise exception
                 raise Exception("EXCEPTION: Unable to successfully start data acquisition.")
             resp = self.device.readline().decode(errors='ignore')   # Clears junk #changed for python3
-            if self.verbose : print("Response in start method:", resp)
+            if self._verbose : print("Response in start method:", resp)
             #if (resp ==''):                 # THIS DOES NOT SEEM LIKE A GOOD SOLUTION     
             if resp == '':                 # THIS DOES NOT SEEM LIKE A GOOD SOLUTION 
                 attemptCount += 1              
@@ -208,11 +218,11 @@ class arduino:
                 print('raw_resp' , resp) # testing
                 if resp == 'INDEX\t0\t1\n': # excpected response  
                     clearing = False # leave loop
-                    if self.verbose: print("Done clearing junk!")
+                    if self._verbose: print("Done clearing junk!")
             #elif (resp =='INDEX\t0\t1\n'):
             elif resp == 'INDEX\t0\t1\n': # expected response
                 clearing = False # leave loop
-                if self.verbose: print("Done clearing junk!")
+                if self._verbose: print("Done clearing junk!")
                 
         self.genLabelTables()               # Get string table of labels from Arduino, should grow arbitrarily large. 
                                             # If start() = self.send("START"), would need to put the clearing code into  self.genLabelTables()
@@ -256,7 +266,7 @@ class arduino:
         
         # Stop data collection if it is currently running.
         if self.running == True : 
-            if self.verbose: print("PAUSING DATA COLLECTION.")
+            if self._verbose: print("PAUSING DATA COLLECTION.")
             self.running = False  # Stops data collection
             running_flag = True   # Flag to indicate we've temporarily turned off the running condition
             
@@ -305,7 +315,7 @@ class arduino:
             
         # Add the header table to the main storage array, for ease of reading when the data is examined later
         self.mainStorage.insert(0, self.headerTable) 
-        if self.verbose: print("Main storage array:", self.mainStorage)
+        if self._verbose: print("Main storage array:", self.mainStorage)
         
         # Save the data    
         _n.savetxt(fileName, self.mainStorage, delimiter =",", fmt = '%s')
@@ -340,7 +350,7 @@ class arduino:
         # Delete device object
         del self.device
 
-        if self.verbose: print("\nPort closed.\n")
+        if self._verbose: print("\nPort closed.\n")
         
         
     def dataCollection(self):          
@@ -356,7 +366,7 @@ class arduino:
         """
         tempStorage = []
         
-        if self.verbose : print("\nStarting data collection loop.")
+        if self._verbose : print("\nStarting data collection loop.")
         
         while True:
             while self.running:
@@ -369,7 +379,7 @@ class arduino:
                     
                     #if (len(respSplit) != 5 ) and  (len(respSplit) != 3 ):  # Helps avoid processing junk
                     if len(respSplit) != 5 and len(respSplit) != 3:  # Helps avoid processing junk
-                        if self.verbose: print("\n\nGARBAGE FOUND IN dataCollection (", respSplit,") BAD RESPONSE LENGTH.\n\n")
+                        if self._verbose: print("\n\nGARBAGE FOUND IN dataCollection (", respSplit,") BAD RESPONSE LENGTH.\n\n")
                         
                     elif respSplit[0] == "INDEX":               # Get the time index
                         tempStorage.append(int(respSplit[2]))   # Append the index to tempStorage
@@ -379,12 +389,12 @@ class arduino:
                         tempStorage.append(respConv)                    # Convert then add value to the tempStorage  
                         
                     else :
-                        if self.verbose: print("\n\nGARBAGE FOUND IN dataCollection: ", resp, "\n\n")        # Catches the garbage of length 5 and 3
+                        if self._verbose: print("\n\nGARBAGE FOUND IN dataCollection: ", resp, "\n\n")        # Catches the garbage of length 5 and 3
                         
                     #if (len(tempStorage) == (len(self.headerTable))) :  # Once a block has been completely read, it's time to append the data to the main storage array
                     if len(tempStorage) == len(self.headerTable):  # Once a block has been completely read, it's time to append the data to the main storage array
                             self.mainStorage.append(tempStorage)        # Add temp to main array
-                            if self.verbose: print("DATA STORED AS: ", tempStorage, "\n")
+                            if self._verbose: print("DATA STORED AS: ", tempStorage, "\n")
                             tempStorage = []
                    
  
