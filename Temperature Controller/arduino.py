@@ -56,7 +56,7 @@ class arduino:
         self.reboot() # Reboot the arduino (as a precaution?)
         if self._verbose: print("Buffer contents before Handshake: ",self.device.read(100))
 
-        for attempt in range(1,10):
+        for attempt in range(1,11):
             # Attempt handshake protocol with the arduino
             try:
                 self.send("HANDSHAKE")
@@ -86,7 +86,7 @@ class arduino:
         """
         Reboots the arduino by toggling the dtr line.
         """
-        if _debug: print("Rebooting arduino by dtr toggle.\n")
+        if self._verbose: print("Rebooting arduino by dtr toggle.\n")
 
         # Toggle the dtr line
         self.device.dtr = True 
@@ -134,27 +134,24 @@ class arduino:
 
         if self._verbose : print("Acquiring INIT variables from Arduino.\n")
         rowCount = 0
-        outputArry = []
-        trying = True     # Run condition
-        while trying:
-            rawVar = self.getResp()                 # Get it    
+        variables = []
+
+        while True:
+            rawVar = self.getResp()                 # Get buffer contents   
             if (rawVar != "READY") :                # After HANDSHAKE is sent, ARduino responds with all the INIT variables, followed by READY
                     splitVar = rawVar.split("\t")   # Clean it
                     rowCount+=1                     # Add to count
                     for i in splitVar:
-                        #if (i is not'=' )and (i != ""): # cleans junk
-                        if i != '=' and i != "": # cleans junk # is not gave a warning, said to use !=
-                            outputArry.append(i)    # Put into the variable array
+                        if i != '=' and i != "": variables.append(i)    # Put into the variable array
                 
-            elif (rawVar == "READY"):               # Indicates all INIT variables have been sent
-                trying = False                      # Change run condition
+            elif (rawVar == "READY"):                                   # Indicates all INIT variables have been sent
                 print("INIT variables acquired: ")
-                outputArry = _n.reshape(outputArry, (rowCount-1,4))     # Minus 1 because there's a junk line to remove
-                for i in outputArry:
-                    i[2] = convertHexToDec(i[2])                   # Convert the values from hex float to dec float
-                print(outputArry)   
-                self.initVar = outputArry # initial variables set to output array
-                self.initVarCount = rowCount-1 # counts initial variables            
+                variables = _n.reshape(variables, (rowCount-1,4))       # Minus 1 because there's a junk line to remove
+                for variable in variables:
+                    variable[2] = convertHexToDec(variable[2])          # Convert the values from hex float to dec float
+                print(variables)   
+                
+                self.initVar      = variables      # Save the identified initial variables
     
     
     def genLabelTables(self):
@@ -335,10 +332,9 @@ class arduino:
             print("Changes to INIT variables have been recorded and saved as: ", (initRecName))
 
 
-    def closePort(self):
+    def close(self):
         """
         Close the serial port.
-
         """
 
         # Cancel a pending read operation from another thread
