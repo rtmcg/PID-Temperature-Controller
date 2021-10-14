@@ -1,33 +1,34 @@
-# -*- coding: utf-8 -*-
-
 import mcphysics as _mp
 import numpy as _n
 import spinmob.egg as _egg
 import traceback as _traceback
-_p = _traceback.print_last
-_g = _egg.gui
 import spinmob as _s
 import time as _time
 
 try: from serial.tools.list_ports import comports as _comports
 except: _comports = None
 
+_p = _traceback.print_last
+_g = _egg.gui
+
+_serial_left_marker  = '<'
+_serial_right_marker = '>'    
+
 _debug_enabled = True
 
-def _debug(*a):
-    if _debug_enabled:
-        s = []
-        for x in a: s.append(str(x))
-        print(', '.join(s))
+# Dark theme
+_s.settings['dark_theme_qt'] = True
 
+## Fonts ##
 style_big_blue      = 'font-size: 15pt; font-weight: bold; color: '+('cyan'              if _s.settings['dark_theme_qt'] else 'blue')
 style_big_red       = 'font-size: 15pt; font-weight: bold; color: '+('lavenderblush'     if _s.settings['dark_theme_qt'] else 'red')
-style_big_purple    = 'font-size: 15pt; font-weight: bold; color: '+('lightcoral'        if _s.settings['dark_theme_qt'] else 'purple')
-style_big_green    =  'font-size: 15pt; font-weight: bold; color: '+('mediumspringgreen' if _s.settings['dark_theme_qt'] else 'purple')
+style_big_purple    = 'font-size: 15pt; font-weight: bold; color: '+('lightcoral'        if _s.settings['dark_theme_qt'] else 'lightcoral')
+style_big_green    =  'font-size: 15pt; font-weight: bold; color: '+('mediumspringgreen' if _s.settings['dark_theme_qt'] else 'mediumspringgreen')
 
-left_marker  = '<'
-right_marker = '>'        
-
+## TODO: 
+    # fix connect button turn off
+    # add all required get and set (get_mode(), set_mode(), get_dac_output(),ect..)
+    # Potentially add plotter tabs, so we can have more than one plotter object.
 
 class arduino_controller_api():
     """
@@ -150,7 +151,7 @@ class arduino_controller_api():
         None.
 
         """
-        encoded_data = (left_marker + raw_data + right_marker).encode()
+        encoded_data = (_serial_left_marker + raw_data + _serial_right_marker).encode()
         self.serial.write(encoded_data) 
     
     def read(self):
@@ -521,7 +522,11 @@ class arduino_controller(_g.BaseObject):
         return self._ports[self.combo_ports.get_index()]
 
 
-
+def _debug(*a):
+    if _debug_enabled:
+        s = []
+        for x in a: s.append(str(x))
+        print(', '.join(s))
 
 if __name__ == '__main__':
     _egg.clear_egg_settings()
