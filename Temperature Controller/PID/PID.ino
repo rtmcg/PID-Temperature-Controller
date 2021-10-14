@@ -68,7 +68,7 @@ void control(){
 }
 
 void initialize(){
-  setpoint = 25.0;
+  setpoint = 24.50;
 
   band = 10.0;
   t_i  =  0.0;
@@ -79,7 +79,7 @@ void initialize(){
 void setup() {
   Serial.begin(BAUD);
   //dac.begin(0x60);
-  //initialize();
+  initialize();
 }
 
 void loop() {
@@ -107,10 +107,12 @@ void parseData() {      // split the data into its parts
   if(strcmp(functionCall,"set_dac")         == 0){ set_dac();         }
   if(strcmp(functionCall,"set_mode")        == 0){ set_mode();        }
   if(strcmp(functionCall,"set_period")      == 0){ set_period();      }
+  if(strcmp(functionCall,"set_setpoint")    == 0){ set_setpoint();    }
   if(strcmp(functionCall,"get_dac")         == 0){ get_dac();         }
   if(strcmp(functionCall,"get_mode")        == 0){ get_mode();        }
   if(strcmp(functionCall,"get_temperature") == 0){ get_temperature(); }
   if(strcmp(functionCall,"get_parameters")  == 0){ get_parameters();  }
+  if(strcmp(functionCall,"get_setpoint")    == 0){ get_setpoint();    }
 }
 
 double thermistor_temperature(double thermistor_voltage){

@@ -69,6 +69,11 @@ void set_mode(){
     }
   }
 
+void set_setpoint(){
+  strtok_index = strtok(NULL, ",");      
+  setpoint       = atof(strtok_index); 
+}
+
 void get_parameters(){
   Serial.println(band,4);
   Serial.println(t_i,4);
@@ -84,5 +89,9 @@ void get_mode(){
 }
 
 void get_temperature(){ 
-   Serial.println(temperature,4);
+  Serial.println(temperature,4);
+}
+
+void get_setpoint(){
+  Serial.println(setpoint,4);
 }

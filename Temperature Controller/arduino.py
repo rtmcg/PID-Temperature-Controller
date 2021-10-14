@@ -25,7 +25,8 @@ style_big_red       = 'font-size: 15pt; font-weight: bold; color: '+('lavenderbl
 style_big_purple    = 'font-size: 15pt; font-weight: bold; color: '+('lightcoral'        if _s.settings['dark_theme_qt'] else 'purple')
 style_big_green    =  'font-size: 15pt; font-weight: bold; color: '+('mediumspringgreen' if _s.settings['dark_theme_qt'] else 'purple')
 
-        
+left_marker  = '<'
+right_marker = '>'        
 
 
 class arduino_controller_api():
@@ -41,13 +42,13 @@ class arduino_controller_api():
     baudrate=9600 : int
         Baud rate of the connection. Must match the instrument setting.
 
-    timeout=2000 : number
+    timeout=1000 : number
         How long to wait for responses before giving up (ms). 
         
     temperature_limit=120 : float
         Upper limit on the temperature setpoint (C).
     """
-    def __init__(self, port='COM3', baudrate=9600, timeout=200, temperature_limit=120):
+    def __init__(self, port='COM3', baudrate=9600, timeout=1000, temperature_limit=120):
 
         self._temperature_limit = temperature_limit        
 
@@ -71,7 +72,7 @@ class arduino_controller_api():
             
             try:
                 # Create the instrument and ensure the settings are correct.
-                self.serial = _mp._serial.Serial(port=port, baudrate=baudrate, timeout=timeout)
+                self.serial = _mp._serial.Serial(port=port, baudrate=baudrate, timeout=timeout/1000)
 
             # Something went wrong. Go into simulation mode.
             except Exception as e:
@@ -79,7 +80,7 @@ class arduino_controller_api():
                 print(e)
                 self.serial = None
                 self.simulation_mode = True
-
+                
     def disconnect(self):
         """
         Disconnects.
@@ -98,15 +99,19 @@ class arduino_controller_api():
         Gets the current temperature in Celcius.
         """
         if self.simulation_mode: return _n.round(_n.random.rand()+24, 1)
-        else:                    return self.modbus.read_register(0x1001, 1)
+        else:                    
+             self.write('get_temperature')
+             return float(self.read())
 
     def get_temperature_setpoint(self):
         """
         Gets the current temperature setpoint in Celcius.
         """
         if self.simulation_mode: return 24.5
-        else:                    return self.modbus.read_register(0x1002, 1)
-
+        else:                    
+             self.write('get_setpoint')
+             return float(self.read())
+         
     def set_temperature_setpoint(self, T=20.0, temperature_limit=None):
         """
         Sets the temperature setpoint to the supplied value in Celcius.
@@ -124,13 +129,42 @@ class arduino_controller_api():
         
         if T > temperature_limit:
             print('Setpoint above the limit! Doing nothing.')
-            return self.get_temperature_setpoint()
+            return float(self.get_temperature_setpoint())
         
         if not self.simulation_mode:
-            self.modbus.write_register(0x00, T, number_of_decimals=1, functioncode=6)
-            return T
-        return self.get_temperature_setpoint()
+            self.serial.write('set_temperature,'+str(T))
 
+        return float(self.get_temperature_setpoint())
+    
+    def write(self,raw_data):
+        """
+        Writes data to the serial line, formatted appropriately to be read by the arduino temperature controller.        
+
+        Parameters
+        ----------
+        raw_data : str
+            Raw data string to be sent to the arduino.
+
+        Returns
+        -------
+        None.
+
+        """
+        encoded_data = (left_marker + raw_data + right_marker).encode()
+        self.serial.write(encoded_data) 
+    
+    def read(self):
+        """
+        Reads data from the serial line.
+
+        Returns
+        -------
+        TYPE
+            DESCRIPTION.
+
+        """
+        return self.serial.read_until(expected = '\r\n'.encode()).decode().strip('\r\n')
+    
 
 class arduino_controller(_g.BaseObject):
     """
@@ -491,4 +525,5 @@ class arduino_controller(_g.BaseObject):
 
 if __name__ == '__main__':
     _egg.clear_egg_settings()
-    self = arduino_controller(temperature_limit=700)
+    #self = arduino_controller(temperature_limit=700)
+    #self = arduino_controller_api(temperature_limit=700)
