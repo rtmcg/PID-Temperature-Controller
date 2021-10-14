@@ -69,11 +69,12 @@ class arduino_controller_api():
 
         # If we have all the libraries, try connecting.
         if not self.simulation_mode:
-            _debug("Attempting serial communication with following parameters:\n Port    : "+port+"\n Baudrate: "+str(baudrate)+" BPS\n Timeout : "+str(timeout)+" ms\n")
+            _debug("Attempting serial communication with following parameters:\nPort    : "+port+"\nBaudrate: "+str(baudrate)+" BPS\nTimeout : "+str(timeout)+" ms\n")
             
             try:
                 # Create the instrument and ensure the settings are correct.
                 self.serial = _mp._serial.Serial(port=port, baudrate=baudrate, timeout=timeout/1000)
+                
 
             # Something went wrong. Go into simulation mode.
             except Exception as e:
@@ -82,18 +83,24 @@ class arduino_controller_api():
                 self.serial = None
                 self.simulation_mode = True
                 
+        if(self.serial != None): _debug("Serial communication to port %s enabled.\n"%port)
+                
     def disconnect(self):
         """
         Disconnects.
         """
-        if not self.simulation_mode: self.serial.close()
+        if not self.simulation_mode: 
+            self.serial.close()
+            _debug('Serial port closed.')
 
     def get_main_output_power(self):
         """
         Gets the current output power (percent).
         """
         if self.simulation_mode: return _n.random.randint(0,200)
-        else:                    return self.modbus.read_register(0x1101, 0)
+        else:                    
+            self.write('get_dac')
+            return 100*(float(self.read()))/4095
 
     def get_temperature(self):
         """
@@ -112,7 +119,45 @@ class arduino_controller_api():
         else:                    
              self.write('get_setpoint')
              return float(self.read())
-         
+    
+    def get_parameters(self):
+        """
+        Get the PID control parameters on the arduino.
+
+        Returns
+        -------
+        Band: float
+            The proportional band.
+            
+        t_i:  float
+            The integral time.
+            
+        t_d: float
+            The derivative time.
+
+        """
+        self.write('get_parameters')  
+        raw_params = self.read().split(',')
+        
+        band = float(raw_params[0])
+        ti   = float(raw_params[1])
+        td   = float(raw_params[2]) 
+        
+        return band, ti, td
+        
+    def get_mode(self):
+        """
+        Get the current operating mode of the of the arduino temperature controller.
+
+        Returns
+        -------
+        str
+            The current operating mode.
+
+        """
+        self.write("get_mode")
+        return self.read()
+    
     def set_temperature_setpoint(self, T=20.0, temperature_limit=None):
         """
         Sets the temperature setpoint to the supplied value in Celcius.
@@ -130,13 +175,51 @@ class arduino_controller_api():
         
         if T > temperature_limit:
             print('Setpoint above the limit! Doing nothing.')
-            return float(self.get_temperature_setpoint())
+            return
         
         if not self.simulation_mode:
-            self.serial.write('set_temperature,'+str(T))
+            self.write('set_temperature,'+str(T))
 
-        return float(self.get_temperature_setpoint())
     
+    def set_parameters(self,band, t_i, t_d):
+        """
+        Set the PID control parameters on the arduino.
+
+        Parameters
+        ----------
+        band : float
+            The proportional band.
+        t_i : float
+            The integral time.
+        t_d : float
+            The derivative time.
+
+        Returns
+        -------
+        None.
+
+        """
+        self.write('set_parameters,%.2f,%.2f,%.2f'%(band,t_i,t_d)) 
+        
+    def set_mode(self,mode):
+        """
+        Set the current operating mode of the of the arduino temperature controller.
+
+        Parameters
+        ----------
+        mode : str
+            The desired operating mode.
+
+        Returns
+        -------
+        None.
+
+        """
+        if( mode != "OPEN_LOOP" and mode != "CLOSED_LOOP"):
+            print("Controller mode has not been changed. %s is not a vaild mode."%mode)
+            return 
+        self.write("set_mode,%s"%mode)
+        
     def write(self,raw_data):
         """
         Writes data to the serial line, formatted appropriately to be read by the arduino temperature controller.        
@@ -248,11 +331,11 @@ class arduino_controller(_g.BaseObject):
 
         # Add mode selector button to GUI (manual and control temperature control modes)
         self.grid_mid.add(_g.Label('Mode:')).set_style('color: azure')
-        self.button_manual  = self.grid_mid.add(_g.Button('Open Loop' ,checkable=True, tip='Enable manual temperature control.'))
-        self.button_manual.signal_toggled.connect(self._button_manual_toggled)
+        self.button_open_loop  = self.grid_mid.add(_g.Button('Open Loop' ,checkable=True, tip='Enable manual temperature control.'))
+        self.button_open_loop.signal_toggled.connect(self._button_open_loop_toggled)
         
-        self.button_control = self.grid_mid.add(_g.Button('Closed Loop',checkable=True, tip='Enable PID temperature control.'))
-        self.button_control.signal_toggled.connect(self._button_control_toggled)
+        self.button_closed_loop = self.grid_mid.add(_g.Button('Closed Loop',checkable=True, tip='Enable PID temperature control.'))
+        self.button_closed_loop.signal_toggled.connect(self._button_closed_loop_toggled)
         
         # Stretch remaining space
         self.grid_top.set_column_stretch(self.grid_top._auto_column)
@@ -356,7 +439,7 @@ class arduino_controller(_g.BaseObject):
         Called when someone changes the number.
         """
         # Set the temperature setpoint
-        self.api.set_temperature_setpoint(self.number_setpoint.get_value(), self._temperature_limit)
+        self.api.set_temperature_setpoint(self.number_setpoint.get_value())
 
 
     def _timer_tick(self, *a):
@@ -407,7 +490,7 @@ class arduino_controller(_g.BaseObject):
                 self.label_status.set_colors('pink' if _s.settings['dark_theme_qt'] else 'red')
                 self.button_connect.set_colors(background='pink')
             else:
-                self.label_status.set_text('Connected').set_colors('teal' if _s.settings['dark_theme_qt'] else 'blue')
+                self.label_status.set_text('Connected').set_colors('white' if _s.settings['dark_theme_qt'] else 'blue')
 
             # Record the time if it's not already there.
             if self.t0 is None: self.t0 = _time.time()
@@ -418,9 +501,16 @@ class arduino_controller(_g.BaseObject):
             # Disable other controls
             self.combo_baudrates.disable()
             self.combo_ports.disable()
+            
+            # 
+            self.button_connect.set_colors(background = 'blue')
 
         # Otherwise, shut it down
         else:
+            
+            if self.button_open_loop.is_checked()  : self.button_open_loop.click()
+            if self.button_closed_loop.is_checked(): self.button_closed_loop.click()
+            
             self.api.disconnect()
             self.label_status.set_text('')
             self.button_connect.set_colors()
@@ -430,19 +520,32 @@ class arduino_controller(_g.BaseObject):
             self.combo_baudrates.enable()
             self.combo_ports.enable()
             self.number_timeout.enable()
+            
+            self.button_connect.set_colors(background = '')
 
         # User function
         self._after_button_connect_toggled()
 
     
-    def _button_control_toggled(self):
+    def _button_closed_loop_toggled(self):
+        
+        _debug('button_closed_loop clicked.')
         
         # Turn-off manual control, if enabled!
-        if self.button_manual.is_checked(): self.button_manual.click()
+        if self.button_open_loop.is_checked(): self.button_open_loop.click()
         
-        if self.button_control.is_checked():
+        if self.button_closed_loop.is_checked():
             try:
-                #self.number_setpoint.set_value(self.api.get_temperature_setpoint(), block_signals=True)
+                
+                # Set the arduino to closed loop mode
+                self.api.set_mode("CLOSED_LOOP")
+                
+                # Verify the arduino has changed mode
+                if( self.api.get_mode() != "CLOSED_LOOP"):
+                    print("problem...")
+                    raise Exception("Arduino failed to change mode to CLOSED_LOOP.")
+                    
+                # Start data collection timer
                 self.timer.start()
                 
                 # Enable access to PID variables in the GUI
@@ -451,13 +554,16 @@ class arduino_controller(_g.BaseObject):
                 self.derivative  .enable()
                 
                 # Change button color as indicator
-                self.button_control.set_colors(text = 'white',background='limegreen')
+                self.button_closed_loop.set_colors(text = 'white',background='limegreen')
+                
+                _debug('Closed loop mode enabled.')
                 
             except:
                 self.number_setpoint.set_value(0)
                 self.button_connect.set_checked(False)
                 self.label_status.set_text('Could not get temperature.').set_colors('pink' if _s.settings['dark_theme_qt'] else 'red')
         else:
+            # Stop the data collection timer
             self.timer.stop()
             
             # Disable access to PID variables in the GUI
@@ -466,36 +572,53 @@ class arduino_controller(_g.BaseObject):
             self.derivative.disable()
             
             # Reset button color
-            self.button_control.set_colors(background='')
+            self.button_closed_loop.set_colors(background='')
+            
+            _debug('Closed loop mode disabled.')
         
         
-    def _button_manual_toggled(self):
+    def _button_open_loop_toggled(self):
         
-        # Turn-off PID control, if enabled!
-        if self.button_control.is_checked(): self.button_control.click()
+        _debug('button_open_loop clicked.')
         
-        if self.button_manual.is_checked():
+        if self.button_closed_loop.is_checked(): self.button_closed_loop.click()
+        
+        if self.button_open_loop.is_checked():
             try:
-                #self.number_setpoint.set_value(self.api.get_temperature_setpoint(), block_signals=True)
+                # Set the arduino to closed loop mode
+                self.api.set_mode("OPEN_LOOP")
+                
+                # Verify the arduino has changed mode
+                if( self.api.get_mode() != "OPEN_LOOP"):
+                    print("problem...")
+                    raise Exception("Arduino failed to change mode to OPEN_LOOP.")
+                
+                # Start data collection timer
                 self.timer.start()
                 
                 # Disable access to manual control variables in the GUI
                 self.number_output_percentage.enable()
                 
                 # Change button color as indicator
-                self.button_manual.set_colors(text = 'white',background='red')
+                self.button_open_loop.set_colors(text = 'white',background='red')
+                
+                _debug('Open loop mode enabled.')
             except:
                 self.number_setpoint.set_value(0)
                 self.button_connect.set_checked(False)
                 self.label_status.set_text('Could not get temperature.').set_colors('pink' if _s.settings['dark_theme_qt'] else 'red')
         else:
+            
+            # Stop data collection timer
             self.timer.stop()
             
             # Disable access to manual control variables in the GUI
             self.number_output_percentage.disable()
             
             # Reset button color
-            self.button_manual.set_colors(background='')
+            self.button_open_loop.set_colors(background='')
+            
+            _debug('Open loop mode disabled.')
 
     
     def _new_exception(self, a):
@@ -530,5 +653,5 @@ def _debug(*a):
 
 if __name__ == '__main__':
     _egg.clear_egg_settings()
-    #self = arduino_controller(temperature_limit=700)
+    self = arduino_controller(temperature_limit=700)
     #self = arduino_controller_api(temperature_limit=700)
