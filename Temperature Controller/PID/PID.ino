@@ -99,7 +99,7 @@ ISR(TIMER1_COMPA_vect){
   control();   
 }
 
-void parseData() {      // split the data into its parts
+void parseData() {      
    strtok_index = strtok(temp_data,",");   // Get the first part - the string
    strcpy(functionCall, strtok_index);     // Copy it to function_call
     
