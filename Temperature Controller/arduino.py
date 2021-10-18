@@ -12,7 +12,8 @@ _p = _traceback.print_last
 _g = _egg.gui
 
 _serial_left_marker  = '<'
-_serial_right_marker = '>'    
+_serial_right_marker = '>'  
+_dac_bit_depth       = 12  
 
 _debug_enabled = True
 
@@ -41,10 +42,10 @@ class arduino_controller_api():
     timeout=1000 : number
         How long to wait for responses before giving up (ms). 
         
-    temperature_limit=120 : float
+    temperature_limit=85 : float
         Upper limit on the temperature setpoint (C).
     """
-    def __init__(self, port='COM3', baudrate=9600, timeout=1000, temperature_limit=120):
+    def __init__(self, port='COM3', baudrate=9600, timeout=1000, temperature_limit=85):
 
         self._temperature_limit = temperature_limit        
 
@@ -52,7 +53,7 @@ class arduino_controller_api():
         if not _mp._serial:
             _s._warn('You need to install pyserial to use the Arduino based PID temperature controller.')
             self.simulation = True
-            _debug('Simulation mode enabled.')
+            _debug('Simulation enabled.')
 
         # Assume everything will work for now
         else: self.simulation = False
@@ -80,6 +81,9 @@ class arduino_controller_api():
                 print(e)
                 self.serial = None
                 self.simulation = True
+        
+        # Give the arduino time to run setup loop!
+        _time.sleep(2)
                                 
     def disconnect(self):
         """
@@ -89,21 +93,21 @@ class arduino_controller_api():
             self.serial.close()
             _debug('Serial port closed.')
 
-    def get_main_output_power(self):
+    def get_output_voltage(self):
         """
         Gets the current output power (percent).
         """
-        if self.simulation: return _n.random.randint(0,100)
+        if self.simulation: return _n.random.randint(0,4095)
         else:                    
             self.write('get_dac')
-            return 100*(float(self.read()))/4095
+            return float(self.read())
 
     def get_temperature(self):
         """
         Gets the current temperature in Celcius.
         """
         if self.simulation: return _n.round(_n.random.rand()+24, 1)
-        else:                    
+        else:
              self.write('get_temperature')
              return float(self.read())
 
@@ -114,6 +118,8 @@ class arduino_controller_api():
         if self.simulation: return 24.5
         else:                    
              self.write('get_setpoint')
+             
+             # Convert to floating point number and return
              return float(self.read())
     
     def get_parameters(self):
@@ -135,6 +141,7 @@ class arduino_controller_api():
         self.write('get_parameters')  
         raw_params = self.read().split(',')
         
+        # Convert to floating point numbers
         band = float(raw_params[0])
         ti   = float(raw_params[1])
         td   = float(raw_params[2]) 
@@ -157,6 +164,36 @@ class arduino_controller_api():
         self.write("get_mode")
         return self.read()
     
+    def set_output_voltage(voltage):
+        """
+        Sets the DAC output voltage.
+
+        Parameters
+        ----------
+        voltage : float
+            The desired dac output voltage.
+        
+        Note
+        ----
+        The true output voltage of the dac will be the closest voltage
+        that can be generated with the dac's bit depth.
+        
+        """
+        
+        if self.simulation: return
+        
+        # Get the control mode
+        mode = self.get_mode()
+        
+        # Convert floating point number into closest integer using _dac_bit_depth 
+        V = round( (2**_dac_bit_depth-1)*voltage/5.)
+        
+        # Check that we are in OPEN_LOOP operation before attempting to set dac voltage
+        if(mode == "OPEN_LOOP"):
+            self.write("set_dac, "+str(V))
+        else:
+            print("Doing nothing. DAC output voltage can only be directly controlled in OPEN_LOOP mode!")        
+    
     def set_temperature_setpoint(self, T=20.0, temperature_limit=None):
         """
         Sets the temperature setpoint to the supplied value in Celcius.
@@ -178,7 +215,6 @@ class arduino_controller_api():
         
         if not self.simulation:
             self.write('set_temperature,'+str(T))
-
     
     def set_parameters(self,band, t_i, t_d):
         """
@@ -372,38 +408,39 @@ class arduino_controller(_g.BaseObject):
           
         self.window.set_size([0,0])
         
-        # Tab for measured temperature
+        # New row
         self.grid_bot.new_autorow()
         
+        # Tab for monitoring measured temperature
         self.grid_bot.add(_g.Label('Measured:'), alignment=2).set_style(style_big_red)
         self.number_temperature = self.grid_bot.add(_g.NumberBox(
             value=-273.16, suffix='°C', tip='Last recorded temperature value.'
             )).set_width(175).disable().set_style(style_big_red)
         
+        # Tab for monitoring and setting the temperature setpoint
         self.grid_bot.add(_g.Label('Setpoint:'), alignment=2).set_style(style_big_blue)
         self.number_setpoint = self.grid_bot.add(_g.NumberBox(
             -273.16, bounds=(-273.16, temperature_limit), suffix='°C',
             signal_changed=self._number_setpoint_changed, tip = 'Targeted temperature.'
             )).set_width(175).set_style(style_big_blue)       
         
-        #
-        #self.grid_bot.new_autorow()
+        # Tab for monitoring and/or setting the DAC output voltage 
         self.grid_bot.add(_g.Label('Output:'), alignment=2).set_style(style_big_purple)
-        
         self.number_output = self.grid_bot.add(_g.NumberBox(
-            value=2.542, suffix='V', decimals = 4, tip='Arduino DAC output to peltie driver (0-5.000 V).'
+            value=2.542, suffix='V', decimals = 4, tip='Arduino DAC output to peltier driver (0-5.000 V).',
+            signal_changed = self._number_output_changed
             )).set_width(175).disable().set_style(style_big_purple)
         
-        # Tabs for proportional, integral, and derivative values
+        # New row
         self.grid_bot.new_autorow()
         
+        # Tabs for proportional, integral, and derivative PID values
         self.grid_bot.add(_g.Label('Band:'),alignment=2).set_style(style_big_green)
         self.proportional = self.grid_bot.add(_g.NumberBox(
             value = 10.0, suffix = '°C', bounds = (0,100.0), decimals=4,
             autosettings_path = name+'.Proportional',
             tip               = 'Prportional band.',
             )).set_width(175).disable().set_style(style_big_green)
-        
         
         self.grid_bot.add(_g.Label('Integral time:'),alignment=2).set_style(style_big_green)
         self.integral = self.grid_bot.add(_g.NumberBox(
@@ -420,6 +457,7 @@ class arduino_controller(_g.BaseObject):
             tip               = 'Derivative action time.',
             )).set_width(175).disable().set_style(style_big_green)
         
+        # Final new row
         self.grid_bot.new_autorow()
         #self.grid_bot.set_row_stretch(self.grid_bot._auto_row)
         
@@ -443,53 +481,48 @@ class arduino_controller(_g.BaseObject):
 
     def _number_setpoint_changed(self, *a):
         """
-        Called when someone changes the number.
+        Called when someone changes the setpoint number.
         """
         # Set the temperature setpoint
         self.api.set_temperature_setpoint(self.number_setpoint.get_value())
     
     def _number_output_changed(self):
         """
-        
-
-        Returns
-        -------
-        None.
+        Called when someone changes the output number.
 
         """
-        #self.api.set_output(self.number_output.get_value())
+        self.api.set_output(self.number_output.get_value())
 
 
     def _timer_tick(self, *a):
         """
         Called whenever the timer ticks. Let's update the plot and save the latest data.
         """
-        # Get the time, temperature, and setpoint
+        # Get the time, temperature, setpoint, and output voltage
         t = _time.time()-self.t0
         T = self.api.get_temperature()
         S = self.api.get_temperature_setpoint()
-        P = self.api.get_main_output_power()
+        V = self.api.get_output_voltage()
+        
+        # Update the temperature and setpoint tabs
+        self.number_temperature(T)
         self.number_setpoint.set_value(S, block_signals=True)
+        
+        # Convert output voltage to a percentage
+        V = 100*(V/4095.)
 
         # Append this to the databox
-        self.plot.append_row([t, T, S, P], ckeys=['Time (s)', 'Temperature (C)', 'Setpoint (C)', 'Power (%)'])
-        self.plot.plot()
+        self.plot.append_row([t, T, S, V], ckeys=['Time (s)', 'Temperature (C)', 'Setpoint (C)', 'DAC Voltage (%)'])
+        self.plot.plot()        
 
-        # Update the big red text.
-        self.number_temperature(T)
-
+        # Update GUI
         self.window.process_events()
-
-
-    def _after_button_connect_toggled(self):
-        """
-        Called after the connection or disconnection routine.
-        """
-
+        
 
     def _button_connect_toggled(self, *a):
         """
-        Connect by creating the API.
+        Called when the connect button is toggled in the GUI. 
+        Creates the API.
         """
         if self._api_class is None:
             raise Exception('You need to specify an api_class when creating a serial GUI object.')
@@ -520,30 +553,31 @@ class arduino_controller(_g.BaseObject):
             self.combo_baudrates.disable()
             self.combo_ports.disable()
             
-            # 
+            # Change the button color to indicate we are connected
             self.button_connect.set_colors(background = 'blue')
 
         # Otherwise, shut it down
         else:
             
+            # Turn off the open/closed loop buttons
             if self.button_open_loop.is_checked()  : self.button_open_loop.click()
             if self.button_closed_loop.is_checked(): self.button_closed_loop.click()
             
+            # Disconnect the API
             self.api.disconnect()
+            
+            #
             self.label_status.set_text('')
             self.button_connect.set_colors()
+            
+            # Disable plotting
             self.grid_bot.disable()
 
-            # Enable other controls
+            # Re-enable other controls
             self.combo_baudrates.enable()
             self.combo_ports.enable()
             self.number_timeout.enable()
-            
-            self.button_connect.set_colors(background = '')
-
-        # User function
-        self._after_button_connect_toggled()
-
+    
     
     def _button_closed_loop_toggled(self):
         
