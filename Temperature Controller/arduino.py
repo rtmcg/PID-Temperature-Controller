@@ -25,11 +25,6 @@ style_big_red       = 'font-size: 15pt; font-weight: bold; color: '+('lavenderbl
 style_big_purple    = 'font-size: 15pt; font-weight: bold; color: '+('lightcoral'        if _s.settings['dark_theme_qt'] else 'lightcoral')
 style_big_green    =  'font-size: 15pt; font-weight: bold; color: '+('mediumspringgreen' if _s.settings['dark_theme_qt'] else 'mediumspringgreen')
 
-## TODO: 
-    # fix connect button turn off
-    # add all required get and set (get_mode(), set_mode(), get_dac_output(),ect..)
-    # Potentially add plotter tabs, so we can have more than one plotter object.
-
 class arduino_controller_api():
     """
     Commands-only object for interacting with an Arduino
@@ -56,24 +51,27 @@ class arduino_controller_api():
         # Check for installed libraries
         if not _mp._serial:
             _s._warn('You need to install pyserial to use the Arduino based PID temperature controller.')
-            self.simulation_mode = True
+            self.simulation = True
             _debug('Simulation mode enabled.')
 
         # Assume everything will work for now
-        else: self.simulation_mode = False
+        else: self.simulation = False
 
         # If the port is "Simulation"
         if port=='Simulation': 
-            self.simulation_mode = True
-            _debug('Simulation mode enabled.')
+            self.simulation      = True
+            self.simulation_mode = "OPEN_LOOP" 
+            _debug('Simulation enabled.')
 
         # If we have all the libraries, try connecting.
-        if not self.simulation_mode:
+        if not self.simulation:
             _debug("Attempting serial communication with following parameters:\nPort    : "+port+"\nBaudrate: "+str(baudrate)+" BPS\nTimeout : "+str(timeout)+" ms\n")
             
             try:
                 # Create the instrument and ensure the settings are correct.
                 self.serial = _mp._serial.Serial(port=port, baudrate=baudrate, timeout=timeout/1000)
+                
+                _debug("Serial communication to port %s enabled.\n"%port)
                 
 
             # Something went wrong. Go into simulation mode.
@@ -81,15 +79,13 @@ class arduino_controller_api():
                 print('Could not open connection to '+port+' at baudrate '+str(baudrate)+' BPS. Entering simulation mode.')
                 print(e)
                 self.serial = None
-                self.simulation_mode = True
-                
-        if(self.serial != None): _debug("Serial communication to port %s enabled.\n"%port)
-                
+                self.simulation = True
+                                
     def disconnect(self):
         """
         Disconnects.
         """
-        if not self.simulation_mode: 
+        if not self.simulation: 
             self.serial.close()
             _debug('Serial port closed.')
 
@@ -97,7 +93,7 @@ class arduino_controller_api():
         """
         Gets the current output power (percent).
         """
-        if self.simulation_mode: return _n.random.randint(0,200)
+        if self.simulation: return _n.random.randint(0,100)
         else:                    
             self.write('get_dac')
             return 100*(float(self.read()))/4095
@@ -106,7 +102,7 @@ class arduino_controller_api():
         """
         Gets the current temperature in Celcius.
         """
-        if self.simulation_mode: return _n.round(_n.random.rand()+24, 1)
+        if self.simulation: return _n.round(_n.random.rand()+24, 1)
         else:                    
              self.write('get_temperature')
              return float(self.read())
@@ -115,7 +111,7 @@ class arduino_controller_api():
         """
         Gets the current temperature setpoint in Celcius.
         """
-        if self.simulation_mode: return 24.5
+        if self.simulation: return 24.5
         else:                    
              self.write('get_setpoint')
              return float(self.read())
@@ -155,6 +151,9 @@ class arduino_controller_api():
             The current operating mode.
 
         """
+        if self.simulation:
+            return self.simulation_mode
+        
         self.write("get_mode")
         return self.read()
     
@@ -177,7 +176,7 @@ class arduino_controller_api():
             print('Setpoint above the limit! Doing nothing.')
             return
         
-        if not self.simulation_mode:
+        if not self.simulation:
             self.write('set_temperature,'+str(T))
 
     
@@ -199,6 +198,8 @@ class arduino_controller_api():
         None.
 
         """
+        if self.simulation: return 
+        
         self.write('set_parameters,%.2f,%.2f,%.2f'%(band,t_i,t_d)) 
         
     def set_mode(self,mode):
@@ -215,9 +216,15 @@ class arduino_controller_api():
         None.
 
         """
+        
         if( mode != "OPEN_LOOP" and mode != "CLOSED_LOOP"):
             print("Controller mode has not been changed. %s is not a vaild mode."%mode)
             return 
+        
+        if self.simulation: 
+            self.simulation_mode = mode
+            return
+        
         self.write("set_mode,%s"%mode)
         
     def write(self,raw_data):
@@ -381,9 +388,9 @@ class arduino_controller(_g.BaseObject):
         
         #
         #self.grid_bot.new_autorow()
-        self.grid_bot.add(_g.Label('DAC Output:'), alignment=2).set_style(style_big_purple)
+        self.grid_bot.add(_g.Label('Output:'), alignment=2).set_style(style_big_purple)
         
-        self.number_output_percentage = self.grid_bot.add(_g.NumberBox(
+        self.number_output = self.grid_bot.add(_g.NumberBox(
             value=2.542, suffix='V', decimals = 4, tip='Arduino DAC output to peltie driver (0-5.000 V).'
             )).set_width(175).disable().set_style(style_big_purple)
         
@@ -440,6 +447,17 @@ class arduino_controller(_g.BaseObject):
         """
         # Set the temperature setpoint
         self.api.set_temperature_setpoint(self.number_setpoint.get_value())
+    
+    def _number_output_changed(self):
+        """
+        
+
+        Returns
+        -------
+        None.
+
+        """
+        #self.api.set_output(self.number_output.get_value())
 
 
     def _timer_tick(self, *a):
@@ -485,8 +503,8 @@ class arduino_controller(_g.BaseObject):
                     timeout=self.number_timeout.get_value())
             
             # If we're in simulation mode
-            if self.api.simulation_mode:
-                self.label_status.set_text('*** Simulation Mode ***')
+            if self.api.simulation:
+                self.label_status.set_text('*** Simulation ***')
                 self.label_status.set_colors('pink' if _s.settings['dark_theme_qt'] else 'red')
                 self.button_connect.set_colors(background='pink')
             else:
@@ -556,7 +574,7 @@ class arduino_controller(_g.BaseObject):
                 # Change button color as indicator
                 self.button_closed_loop.set_colors(text = 'white',background='limegreen')
                 
-                _debug('Closed loop mode enabled.')
+                _debug('CLOSED_LOOP mode enabled.')
                 
             except:
                 self.number_setpoint.set_value(0)
@@ -597,12 +615,12 @@ class arduino_controller(_g.BaseObject):
                 self.timer.start()
                 
                 # Disable access to manual control variables in the GUI
-                self.number_output_percentage.enable()
+                self.number_output.enable()
                 
                 # Change button color as indicator
                 self.button_open_loop.set_colors(text = 'white',background='red')
                 
-                _debug('Open loop mode enabled.')
+                _debug('OPEN_LOOP mode enabled.')
             except:
                 self.number_setpoint.set_value(0)
                 self.button_connect.set_checked(False)
@@ -613,7 +631,7 @@ class arduino_controller(_g.BaseObject):
             self.timer.stop()
             
             # Disable access to manual control variables in the GUI
-            self.number_output_percentage.disable()
+            self.number_output.disable()
             
             # Reset button color
             self.button_open_loop.set_colors(background='')
