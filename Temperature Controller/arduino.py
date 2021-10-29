@@ -115,7 +115,7 @@ class arduino_controller_api():
         """
         Gets the current temperature setpoint in Celcius.
         """
-        if self.simulation: return 24.5
+        if self.simulation: return 25.4
         else:                    
              self.write('get_setpoint')
              
@@ -412,20 +412,33 @@ class arduino_controller(_g.BaseObject):
         self.grid_bot.new_autorow()
         
         # Tab for monitoring measured temperature
-        self.grid_bot.add(_g.Label('Measured:'), alignment=2).set_style(style_big_red)
+        self.grid_bot.add(_g.Label('Measured:'),alignment=2).set_style(style_big_red)
         self.number_temperature = self.grid_bot.add(_g.NumberBox(
             value=-273.16, suffix='°C', tip='Last recorded temperature value.'
             )).set_width(175).disable().set_style(style_big_red)
+
         
         # Tab for monitoring and setting the temperature setpoint
         self.grid_bot.add(_g.Label('Setpoint:'), alignment=2).set_style(style_big_blue)
         self.number_setpoint = self.grid_bot.add(_g.NumberBox(
             -273.16, bounds=(-273.16, temperature_limit), suffix='°C',
             signal_changed=self._number_setpoint_changed, tip = 'Targeted temperature.'
-            )).set_width(175).set_style(style_big_blue)       
+            )).set_width(175).set_style(style_big_blue)    
+        
+        # New row
+        self.grid_bot.new_autorow()
+        
+  
+        
+        self.grid_bot.add(_g.Label('Period:'),alignment=2).set_style(style_big_green)
+        self.number_period = self.grid_bot.add(_g.NumberBox(
+            value = 100, suffix = 'ms', bounds = (0,10000),
+            autosettings_path = name+'.Period',
+            tip               = 'Time between calls to the control function.',
+            )).set_width(175).disable().set_style(style_big_green)
         
         # Tab for monitoring and/or setting the DAC output voltage 
-        self.grid_bot.add(_g.Label('Output:'), alignment=2).set_style(style_big_purple)
+        self.grid_bot.add(_g.Label('DAC output:'), alignment=2).set_style(style_big_purple)
         self.number_output = self.grid_bot.add(_g.NumberBox(
             value=2.542, suffix='V', decimals = 4, tip='Arduino DAC output to peltier driver (0-5.000 V).',
             signal_changed = self._number_output_changed
@@ -436,14 +449,14 @@ class arduino_controller(_g.BaseObject):
         
         # Tabs for proportional, integral, and derivative PID values
         self.grid_bot.add(_g.Label('Band:'),alignment=2).set_style(style_big_green)
-        self.proportional = self.grid_bot.add(_g.NumberBox(
+        self.number_proportional = self.grid_bot.add(_g.NumberBox(
             value = 10.0, suffix = '°C', bounds = (0,100.0), decimals=4,
             autosettings_path = name+'.Proportional',
             tip               = 'Prportional band.',
             )).set_width(175).disable().set_style(style_big_green)
         
         self.grid_bot.add(_g.Label('Integral time:'),alignment=2).set_style(style_big_green)
-        self.integral = self.grid_bot.add(_g.NumberBox(
+        self.number_integral = self.grid_bot.add(_g.NumberBox(
             value = 88.29, suffix = 's', bounds = (0,100.0), decimals=4,
             autosettings_path = name+'.integral',
             tip               = 'Integral action time.',
@@ -451,11 +464,12 @@ class arduino_controller(_g.BaseObject):
         
         
         self.grid_bot.add(_g.Label('Derivative time:'),alignment=2).set_style(style_big_green)
-        self.derivative = self.grid_bot.add(_g.NumberBox(
+        self.number_derivative = self.grid_bot.add(_g.NumberBox(
             value = 1.02, suffix = 's', bounds = (0,100.0), decimals=4,
             autosettings_path = name+'.derivative',
             tip               = 'Derivative action time.',
             )).set_width(175).disable().set_style(style_big_green)
+        
         
         # Final new row
         self.grid_bot.new_autorow()
@@ -486,12 +500,13 @@ class arduino_controller(_g.BaseObject):
         # Set the temperature setpoint
         self.api.set_temperature_setpoint(self.number_setpoint.get_value())
     
+    
     def _number_output_changed(self):
         """
         Called when someone changes the output number.
 
         """
-        self.api.set_output(self.number_output.get_value())
+        self.api.set_output_voltage(self.number_output.get_value())
 
 
     def _timer_tick(self, *a):
@@ -542,6 +557,18 @@ class arduino_controller(_g.BaseObject):
                 self.button_connect.set_colors(background='pink')
             else:
                 self.label_status.set_text('Connected').set_colors('white' if _s.settings['dark_theme_qt'] else 'blue')
+                
+                # Get temperature and parameter data currently on the arduino
+                T        = self.api.get_temperature()
+                S        = self.api.get_temperature_setpoint()
+                P, I, D  = self.api.get_parameters()
+                
+                # Update the temperature, setpoint, and parameter tabs
+                self.number_temperature(T)
+                self.number_setpoint.set_value(S, block_signals=True)
+                self.number_proportional.set_value(P, block_signals=True)
+                self.number_integral.set_value(I, block_signals=True)
+                self.number_derivative.set_value(D, block_signals=True)
 
             # Record the time if it's not already there.
             if self.t0 is None: self.t0 = _time.time()
@@ -619,9 +646,9 @@ class arduino_controller(_g.BaseObject):
             self.timer.stop()
             
             # Disable access to PID variables in the GUI
-            self.proportional.disable()
-            self.integral.disable()
-            self.derivative.disable()
+            self.number_proportional.disable()
+            self.number_integral.disable()
+            self.number_derivative.disable()
             
             # Reset button color
             self.button_closed_loop.set_colors(background='')

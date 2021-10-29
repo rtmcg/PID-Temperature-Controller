@@ -8,10 +8,6 @@ void set_period(){
   unsigned int period = atoi(strtok_index);
   unsigned int num_clk_ticks = floor(16e6*period/1024000) - 1; // Calculate the number of clock ticks in the specified period
   
-  //char buf[256];
-  //sprintf(buf,"DEBUG\tsetPeriod(%d): number = %d, tick = %ld us, actual period = %ld us\n", period, number, (long)(1e3*tick), (long)(1e3*tick*(number+1)));
-  //Serial.print(buf);
-  
   // Manipulating registers in the AVR chip (here the ATmega328 for the arduino uno), see the datasheet for details.
   cli();                    // Disable interrupts
 
@@ -75,8 +71,10 @@ void set_setpoint(){
 }
 
 void get_parameters(){
-  Serial.println(band,4);
-  Serial.println(t_i,4);
+  Serial.print(band,4);
+  Serial.print(',');
+  Serial.print(t_i,4);
+  Serial.print(',');
   Serial.println(t_d,4);    
 }
 

@@ -71,9 +71,25 @@ void initialize(){
   setpoint = 24.50;
 
   band = 10.0;
-  t_i  =  0.0;
-  t_d  =  0.0;
+  t_i  =  8.2;
+  t_d  =  2.32;
 
+  unsigned int period = 1000;                                  // 1000 ms period 
+  unsigned int num_clk_ticks = floor(16e6*period/1024000) - 1; // Calculate the number of clock ticks in the specified period
+  
+  // Manipulating registers in the AVR chip (here the ATmega328 for the arduino uno), see the datasheet for details.
+  cli();                    // Disable interrupts
+
+  TCCR1A = 0;               // Blank out Timer control register A 
+  TCCR1B = 0;               // Blank out Timer control register B 
+  TCNT1  = 0;               // Initialize Timer1's counter value to be 0
+  OCR1A  = num_clk_ticks;   /* Set the output compare register 1 to the number of ticks found earlier */    
+                            /* Note that OCR1a is a 16-bit register, so _number <= 65,535             */ 
+
+  TCCR1B |= (1 << WGM12);                 // Enable clear timer on compare match (CTC) mode
+  TCCR1B |= (1 << CS12) | (1 << CS10);    // Set a prescaler of 1024 on Timer1 
+  TIMSK1 |= (1 << OCIE1A);                // Enable Timer1 output compare match interrupt
+  sei();                                  // Re-enable interrupts
 }
 
 void setup() {
