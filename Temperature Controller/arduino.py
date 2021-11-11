@@ -21,29 +21,32 @@ _debug_enabled = True
 _s.settings['dark_theme_qt'] = True
 
 ## Fonts ##
-style_big_blue      = 'font-size: 15pt; font-weight: bold; color: '+('cyan'              if _s.settings['dark_theme_qt'] else 'blue')
-style_big_red       = 'font-size: 15pt; font-weight: bold; color: '+('lavenderblush'     if _s.settings['dark_theme_qt'] else 'red')
-style_big_purple    = 'font-size: 15pt; font-weight: bold; color: '+('lightcoral'        if _s.settings['dark_theme_qt'] else 'lightcoral')
-style_big_green    =  'font-size: 15pt; font-weight: bold; color: '+('mediumspringgreen' if _s.settings['dark_theme_qt'] else 'mediumspringgreen')
+style_1    = 'font-size: 17pt; font-weight: bold; color: '+('white'              if _s.settings['dark_theme_qt'] else 'royalblue')
+style_2    = 'font-size: 17pt; font-weight: bold; color: '+('mediumspringgreen' if _s.settings['dark_theme_qt'] else 'mediumspringgreen')
+style_3    = 'font-size: 14pt; font-weight: bold; color: '+('lightcoral'        if _s.settings['dark_theme_qt'] else 'lightcoral')
+style_4    = 'font-size: 14pt; font-weight: bold; color: '+('paleturquoise'             if _s.settings['dark_theme_qt'] else 'lightcoral')
+style_5    = 'font-size: 14pt; font-weight: bold; color: '+('paleturquoise'         if _s.settings['dark_theme_qt'] else 'lightcoral')
+style_big_green    =  'font-size: 14pt; font-weight: bold; color: '+('mediumspringgreen' if _s.settings['dark_theme_qt'] else 'mediumspringgreen')
 
 class arduino_controller_api():
     """
     Commands-only object for interacting with an Arduino
     temperature controller.
-
+    
     Parameters
     ----------
     port='COM3' : str
         Name of the port to connect to.
-
+        
     baudrate=9600 : int
         Baud rate of the connection. Must match the instrument setting.
-
+        
     timeout=1000 : number
         How long to wait for responses before giving up (ms). 
         
     temperature_limit=85 : float
         Upper limit on the temperature setpoint (C).
+        
     """
     def __init__(self, port='COM3', baudrate=9600, timeout=1000, temperature_limit=85):
 
@@ -125,7 +128,6 @@ class arduino_controller_api():
     def get_parameters(self):
         """
         Get the PID control parameters on the arduino.
-
         Returns
         -------
         Band: float
@@ -136,7 +138,6 @@ class arduino_controller_api():
             
         t_d: float
             The derivative time.
-
         """
         self.write('get_parameters')  
         raw_params = self.read().split(',')
@@ -151,12 +152,10 @@ class arduino_controller_api():
     def get_mode(self):
         """
         Get the current operating mode of the of the arduino temperature controller.
-
         Returns
         -------
         str
             The current operating mode.
-
         """
         if self.simulation:
             return self.simulation_mode
@@ -167,7 +166,6 @@ class arduino_controller_api():
     def set_output_voltage(voltage):
         """
         Sets the DAC output voltage.
-
         Parameters
         ----------
         voltage : float
@@ -219,7 +217,6 @@ class arduino_controller_api():
     def set_parameters(self,band, t_i, t_d):
         """
         Set the PID control parameters on the arduino.
-
         Parameters
         ----------
         band : float
@@ -228,11 +225,9 @@ class arduino_controller_api():
             The integral time.
         t_d : float
             The derivative time.
-
         Returns
         -------
         None.
-
         """
         if self.simulation: return 
         
@@ -241,16 +236,13 @@ class arduino_controller_api():
     def set_mode(self,mode):
         """
         Set the current operating mode of the of the arduino temperature controller.
-
         Parameters
         ----------
         mode : str
             The desired operating mode.
-
         Returns
         -------
         None.
-
         """
         
         if( mode != "OPEN_LOOP" and mode != "CLOSED_LOOP"):
@@ -263,19 +255,50 @@ class arduino_controller_api():
         
         self.write("set_mode,%s"%mode)
         
-    def write(self,raw_data):
+    def set_period(self,period):
         """
-        Writes data to the serial line, formatted appropriately to be read by the arduino temperature controller.        
+        
 
         Parameters
         ----------
-        raw_data : str
-            Raw data string to be sent to the arduino.
+        period : TYPE
+            DESCRIPTION.
 
         Returns
         -------
         None.
 
+        """
+        if simulation_mode:
+            return
+        
+        self.write('set_period,'+int(period))
+    
+    def get_period(self):
+        """
+        
+
+        Returns
+        -------
+        int
+            Control loop period.
+
+        """
+        
+        self.write("get_period")
+        
+        return int(self.read())
+        
+    def write(self,raw_data):
+        """
+        Writes data to the serial line, formatted appropriately to be read by the arduino temperature controller.        
+        Parameters
+        ----------
+        raw_data : str
+            Raw data string to be sent to the arduino.
+        Returns
+        -------
+        None.
         """
         encoded_data = (_serial_left_marker + raw_data + _serial_right_marker).encode()
         self.serial.write(encoded_data) 
@@ -283,12 +306,10 @@ class arduino_controller_api():
     def read(self):
         """
         Reads data from the serial line.
-
         Returns
         -------
         TYPE
             DESCRIPTION.
-
         """
         return self.serial.read_until(expected = '\r\n'.encode()).decode().strip('\r\n')
     
@@ -296,27 +317,26 @@ class arduino_controller_api():
 class arduino_controller(_g.BaseObject):
     """
     Graphical interface for the Arduino based PID temperature controller.
-
+    
     Parameters
     ----------
     name='auber_syl53x2p' : str
         Unique name to give this instance, so that its settings will not
         collide with other egg objects.
-
+    
     temperature_limit=450 : float
         Upper limit on the temperature setpoint (C).
     
     show=True : bool
         Whether to show the window after creating.
-
+        
     block=False : bool
         Whether to block the console when showing the window.
-
+        
     window_size=[1,1] : list
         Dimensions of the window.
-
     """
-    def __init__(self, name='Arduino_PID', api_class = arduino_controller_api, temperature_limit=500, show=True, block=False, window_size=[1,300]):
+    def __init__(self, name='Arduino_PID', api_class = arduino_controller_api, temperature_limit=500, show=True, block=False, window_size=None):
         
         if not _mp._serial: _s._warn('You need to install pyserial to use the Arduino based PID temperature controller.')
         
@@ -332,14 +352,26 @@ class arduino_controller(_g.BaseObject):
         self._api_class = api_class
 
         # Create GUI window
-        self.window   = _g.Window(self.name, size=window_size, autosettings_path=name+'.window',event_close = self._window_close)
+        self.window   = _g.Window(self.name, autosettings_path=name+'.window',event_close = self._window_close)
         
-        # Create partitions in the GUI window
-        self.grid_top = self.window.place_object(_g.GridLayout(margins=False), alignment=0)
+        ## Create partitions in the GUI window
+        
+        self.grid_top = self.window.place_object(_g.GridLayout(margins=False), 0, 0, alignment = 1,column_span = 2)
+        
         self.window.new_autorow()
-        self.grid_mid = self.window.place_object(_g.GridLayout(margins=False), alignment=0) 
+        self.grid_mid = self.window.place_object(_g.GridLayout(margins=False), 0, 1, alignment = 1, column_span = 1) 
+        
         self.window.new_autorow()
-        self.grid_bot = self.window.place_object(_g.GridLayout(margins=False), alignment=0)
+        self.grid_temperature = self.window.place_object(_g.GridLayout(margins=False), 0, 3, alignment=1, column_span =1)
+        
+        self.window.new_autorow()
+        self.grid_params = self.window.place_object(_g.GridLayout(margins=False), 0, 4, alignment=1, column_span = 1)
+        
+        self.window.new_autorow()
+        self.grid_params1 = self.window.place_object(_g.GridLayout(margins=False), 1, 4, alignment=1, column_span = 1)
+        
+        self.window.new_autorow()
+        self.grid_bot = self.window.place_object(_g.GridLayout(margins=False), 0, 5, alignment=0, column_span =4)
 
        # Get all the available ports
         self._ports = [] # Actual port names for connecting
@@ -372,30 +404,32 @@ class arduino_controller(_g.BaseObject):
         self.button_connect  = self.grid_top.add(_g.Button('Connect', checkable=True,tip='Connect to the selected serial port.'))
         self.button_connect.signal_toggled.connect(self._button_connect_toggled)
 
-        # Add mode selector button to GUI (manual and control temperature control modes)
+        ## Add mode buttons to GUI (open and closed loop control modes)
         self.grid_mid.add(_g.Label('Mode:')).set_style('color: azure')
+        
+        # Open loop (manual) control mode activation button
         self.button_open_loop  = self.grid_mid.add(_g.Button('Open Loop' ,checkable=True, tip='Enable manual temperature control.'))
         self.button_open_loop.signal_toggled.connect(self._button_open_loop_toggled)
         
+        # Closed loop control mode activation button
         self.button_closed_loop = self.grid_mid.add(_g.Button('Closed Loop',checkable=True, tip='Enable PID temperature control.'))
         self.button_closed_loop.signal_toggled.connect(self._button_closed_loop_toggled)
         
-        # Stretch remaining space
-        self.grid_top.set_column_stretch(self.grid_top._auto_column)
-        self.grid_mid.set_column_stretch(self.grid_mid._auto_column)
+        
+        #self.grid_bot.set_column_stretch(0,10)
         
         # Status
         self.label_status = self.grid_top.add(_g.Label(''))
 
         # Error
         self.grid_top.new_autorow()
-        self.label_message = self.grid_top.add(_g.Label(''), column_span=10).set_colors('pink' if _s.settings['dark_theme_qt'] else 'red')
+        self.label_message = self.grid_top.add(_g.Label(''), column_span=1).set_colors('pink' if _s.settings['dark_theme_qt'] else 'red')
         
         # By default the bottom grid is disabled
         self.grid_bot.disable()
 
         # Expand the bottom grid
-        self.window.set_row_stretch(2)
+        #self.window.set_row_stretch(5)
 
         # Other data
         self.t0 = None
@@ -408,72 +442,66 @@ class arduino_controller(_g.BaseObject):
           
         self.window.set_size([0,0])
         
-        # New row
-        self.grid_bot.new_autorow()
+        # Data box width
+        box_width = 175
         
         # Tab for monitoring measured temperature
-        self.grid_bot.add(_g.Label('Measured:'),alignment=2).set_style(style_big_red)
-        self.number_temperature = self.grid_bot.add(_g.NumberBox(
-            value=-273.16, suffix='°C', tip='Last recorded temperature value.'
-            )).set_width(175).disable().set_style(style_big_red)
-
+        self.grid_temperature.add(_g.Label('Measured Temperature:'), alignment=2).set_style(style_1)
+        self.number_temperature = self.grid_temperature.add(_g.NumberBox(
+            value=-273.16, suffix='°C', tip='Last recorded temperature value.'), alignment=2).set_width(box_width).disable().set_style(style_1)
         
-        # Tab for monitoring and setting the temperature setpoint
-        self.grid_bot.add(_g.Label('Setpoint:'), alignment=2).set_style(style_big_blue)
-        self.number_setpoint = self.grid_bot.add(_g.NumberBox(
-            -273.16, bounds=(-273.16, temperature_limit), suffix='°C',
-            signal_changed=self._number_setpoint_changed, tip = 'Targeted temperature.'
-            )).set_width(175).set_style(style_big_blue)    
+        
+        # Tab for setting the temperature setpoint
+        self.grid_params.add(_g.Label('Setpoint Temperature:'), alignment=1).set_style(style_4)
+        self.number_setpoint = self.grid_params.add(_g.NumberBox(
+            -273.16, bounds=(-273.16, temperature_limit), suffix='°C',signal_changed = self._number_setpoint_changed,
+            tip = 'Targeted temperature.'), alignment=1).set_width(box_width).set_style(style_4)  
         
         # New row
-        self.grid_bot.new_autorow()
+        self.grid_params.new_autorow()
         
-  
-        
-        self.grid_bot.add(_g.Label('Period:'),alignment=2).set_style(style_big_green)
-        self.number_period = self.grid_bot.add(_g.NumberBox(
-            value = 100, suffix = 'ms', bounds = (0,10000),
-            autosettings_path = name+'.Period',
-            tip               = 'Time between calls to the control function.',
-            )).set_width(175).disable().set_style(style_big_green)
+        # Tab for setting the control period
+        self.grid_params.add(_g.Label('Contol Period:'), alignment=1).set_style(style_5)
+        self.number_period = self.grid_params.add(_g.NumberBox(
+            value = 100, suffix = 'ms', bounds = (0,10000), autosettings_path = name+'.Period',
+            tip = 'Time between calls to the control function.'), alignment=1).set_width(box_width).disable().set_style(style_5)
+
+        # New row
+        self.grid_params.new_autorow()
         
         # Tab for monitoring and/or setting the DAC output voltage 
-        self.grid_bot.add(_g.Label('DAC output:'), alignment=2).set_style(style_big_purple)
-        self.number_output = self.grid_bot.add(_g.NumberBox(
+        self.grid_params.add(_g.Label('DAC output:'), alignment=1).set_style(style_3)
+        self.number_output = self.grid_params.add(_g.NumberBox(
             value=2.542, suffix='V', decimals = 4, tip='Arduino DAC output to peltier driver (0-5.000 V).',
-            signal_changed = self._number_output_changed
-            )).set_width(175).disable().set_style(style_big_purple)
-        
-        # New row
-        self.grid_bot.new_autorow()
-        
-        # Tabs for proportional, integral, and derivative PID values
-        self.grid_bot.add(_g.Label('Band:'),alignment=2).set_style(style_big_green)
-        self.number_proportional = self.grid_bot.add(_g.NumberBox(
+            signal_changed = self._number_output_changed), alignment=1).set_width(box_width).disable().set_style(style_3)
+
+    
+        # Tabs for band PID value
+        self.grid_params1.add(_g.Label('Band:'),alignment=1).set_style(style_big_green)
+        self.number_proportional = self.grid_params1.add(_g.NumberBox(
             value = 10.0, suffix = '°C', bounds = (0,100.0), decimals=4,
             autosettings_path = name+'.Proportional',
-            tip               = 'Prportional band.',
-            )).set_width(175).disable().set_style(style_big_green)
+            tip = 'Prportional band.'), alignment=1).set_width(box_width).disable().set_style(style_big_green)
         
-        self.grid_bot.add(_g.Label('Integral time:'),alignment=2).set_style(style_big_green)
-        self.number_integral = self.grid_bot.add(_g.NumberBox(
+        # New row
+        self.grid_params1.new_autorow()
+        
+        # Tab for integral time PID value
+        self.grid_params1.add(_g.Label('Integral time:'),alignment=1).set_style(style_big_green)
+        self.number_integral = self.grid_params1.add(_g.NumberBox(
             value = 88.29, suffix = 's', bounds = (0,100.0), decimals=4,
             autosettings_path = name+'.integral',
-            tip               = 'Integral action time.',
-            )).set_width(175).disable().set_style(style_big_green)
+            tip = 'Integral action time.'), alignment=1).set_width(box_width).disable().set_style(style_big_green)
         
+        # New row
+        self.grid_params1.new_autorow()
         
-        self.grid_bot.add(_g.Label('Derivative time:'),alignment=2).set_style(style_big_green)
-        self.number_derivative = self.grid_bot.add(_g.NumberBox(
+        # Tab for derivative time PID value
+        self.grid_params1.add(_g.Label('Derivative time:'),alignment=1).set_style(style_big_green)
+        self.number_derivative = self.grid_params1.add(_g.NumberBox(
             value = 1.02, suffix = 's', bounds = (0,100.0), decimals=4,
             autosettings_path = name+'.derivative',
-            tip               = 'Derivative action time.',
-            )).set_width(175).disable().set_style(style_big_green)
-        
-        
-        # Final new row
-        self.grid_bot.new_autorow()
-        #self.grid_bot.set_row_stretch(self.grid_bot._auto_row)
+            tip = 'Derivative action time.'), alignment=1).set_width(box_width).disable().set_style(style_big_green)
         
         # Make the plotter.
         self.grid_bot.new_autorow()
@@ -504,7 +532,6 @@ class arduino_controller(_g.BaseObject):
     def _number_output_changed(self):
         """
         Called when someone changes the output number.
-
         """
         self.api.set_output_voltage(self.number_output.get_value())
 
@@ -527,7 +554,7 @@ class arduino_controller(_g.BaseObject):
         V = 100*(V/4095.)
 
         # Append this to the databox
-        self.plot.append_row([t, T, S, V], ckeys=['Time (s)', 'Temperature (C)', 'Setpoint (C)', 'DAC Voltage (%)'])
+        self.plot.append_row([t, T, S, V], ckeys=['Time (s)', 'Temperature (C)', 'Setpoint (C)', 'DAC Voltage (%)'],)
         self.plot.plot()        
 
         # Update GUI
@@ -628,9 +655,11 @@ class arduino_controller(_g.BaseObject):
                 self.timer.start()
                 
                 # Enable access to PID variables in the GUI
-                self.proportional.enable()
-                self.integral    .enable()
-                self.derivative  .enable()
+                self.number_proportional.enable()
+                self.number_integral    .enable()
+                self.number_derivative  .enable()
+                self.number_period      .enable()
+                
                 
                 # Change button color as indicator
                 self.button_closed_loop.set_colors(text = 'white',background='limegreen')
@@ -640,7 +669,8 @@ class arduino_controller(_g.BaseObject):
             except:
                 self.number_setpoint.set_value(0)
                 self.button_connect.set_checked(False)
-                self.label_status.set_text('Could not get temperature.').set_colors('pink' if _s.settings['dark_theme_qt'] else 'red')
+                
+
         else:
             # Stop the data collection timer
             self.timer.stop()
@@ -733,4 +763,3 @@ def _debug(*a):
 if __name__ == '__main__':
     _egg.clear_egg_settings()
     self = arduino_controller(temperature_limit=700)
-    #self = arduino_controller_api(temperature_limit=700)

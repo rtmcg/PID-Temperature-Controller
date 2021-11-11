@@ -3,6 +3,9 @@
 
 #define BAUD 9600
 #define THERMISTOR_PIN A2
+#define POLARITY_PIN   1
+
+#define ENABLE_OUTPUT false 
 
 /** Basic parameters **/ 
 double temperature; 
@@ -10,9 +13,11 @@ double setpoint;
 double error;
 
 /** PID control parameters **/
-double band;  // Proportional band
-double t_i;   // Integral time
-double t_d;   // Derivative time
+double band        ;   // Proportional band
+double t_integral  ;   // Integral time
+double t_derivative;   // Derivative time
+
+unsigned int period;   // 1000 ms period 
 
 /** Setup the external DAC **/
 Adafruit_MCP4725 dac;    // New DAC object
@@ -30,9 +35,6 @@ char * strtok_index;              // Used by strtok() as an index
 enum MODES{OPEN_LOOP,CLOSED_LOOP};
 enum MODES mode = OPEN_LOOP;
 const char *MODE_NAMES[] = {"OPEN_LOOP","CLOSED_LOOP"};
-
-/** Debugging **/
-bool _output = false;
 
 void control(){
   /*
@@ -54,7 +56,7 @@ void control(){
   mu = sum / (double) N;            // Mean
   sigma = sqrt((sumsq - sum*mu)/N); // Variance 
 
-  temperature = thermistor_temperature(mu);
+  temperature = mu;
   error = (temperature - setpoint);
 
   if (error > band/2) {
@@ -64,17 +66,17 @@ void control(){
     dac_output = 4095;
   }
   
-  if(_output){ dac.setVoltage(dac_output,false); }
+  if(ENABLE_OUTPUT){ dac.setVoltage(dac_output,false); }
 }
 
 void initialize(){
   setpoint = 24.50;
 
-  band = 10.0;
-  t_i  =  8.2;
-  t_d  =  2.32;
+  band         = 10.0;
+  t_integral   =  8.2;
+  t_derivative =  2.32;
 
-  unsigned int period = 1000;                                  // 1000 ms period 
+  period = 1000;
   unsigned int num_clk_ticks = floor(16e6*period/1024000) - 1; // Calculate the number of clock ticks in the specified period
   
   // Manipulating registers in the AVR chip (here the ATmega328 for the arduino uno), see the datasheet for details.
@@ -94,12 +96,14 @@ void initialize(){
 
 void setup() {
   Serial.begin(BAUD);
-  //dac.begin(0x60);
+  //Serial.println("Hello");
+  if(ENABLE_OUTPUT){dac.begin(0x60);}
   initialize();
 }
 
 void loop() {
     receive_data();
+
     if (newData == true) {
         strcpy(temp_data, received_data); /* this temporary copy is necessary to protect the original data    */
                                           /* because strtok() used in parseData() replaces the commas with \0 */
@@ -113,25 +117,4 @@ ISR(TIMER1_COMPA_vect){
  *  Timer1 compare interrupt 
  */
   control();   
-}
-
-void parseData() {      
-   strtok_index = strtok(temp_data,",");   // Get the first part - the string
-   strcpy(functionCall, strtok_index);     // Copy it to function_call
-    
-  if(strcmp(functionCall,"set_parameters")  == 0){ set_parameters();  }
-  if(strcmp(functionCall,"set_dac")         == 0){ set_dac();         }
-  if(strcmp(functionCall,"set_mode")        == 0){ set_mode();        }
-  if(strcmp(functionCall,"set_period")      == 0){ set_period();      }
-  if(strcmp(functionCall,"set_setpoint")    == 0){ set_setpoint();    }
-  if(strcmp(functionCall,"get_dac")         == 0){ get_dac();         }
-  if(strcmp(functionCall,"get_mode")        == 0){ get_mode();        }
-  if(strcmp(functionCall,"get_temperature") == 0){ get_temperature(); }
-  if(strcmp(functionCall,"get_parameters")  == 0){ get_parameters();  }
-  if(strcmp(functionCall,"get_setpoint")    == 0){ get_setpoint();    }
-}
-
-double thermistor_temperature(double thermistor_voltage){
-  // Write this !
-  return thermistor_voltage;
 }
