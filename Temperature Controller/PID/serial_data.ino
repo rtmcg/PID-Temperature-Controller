@@ -59,7 +59,7 @@ void parseData() {
   }
   
   if(strcmp(functionCall,"set_dac") == 0){ 
-    unsigned int voltage_12bit = atoi(strtok_index);
+    int voltage_12bit = atoi(strtok_index);
 
     if(mode == OPEN_LOOP){
       set_dac(voltage_12bit);
@@ -92,7 +92,7 @@ void parseData() {
   }
   
   if(strcmp(functionCall,"get_dac")         == 0){ 
-      Serial.println(get_dac(),4);
+      Serial.println(get_dac());
   }
   
   if(strcmp(functionCall,"get_mode")        == 0){ 
@@ -120,5 +120,8 @@ void parseData() {
   
   if(strcmp(functionCall,"get_setpoint")    == 0){ 
     Serial.println(get_setpoint(),4);    
+  }
+   if(strcmp(functionCall,"get_period")    == 0){ 
+    Serial.println(get_period());    
   }
 }

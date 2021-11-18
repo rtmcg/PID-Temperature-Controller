@@ -96,7 +96,7 @@ class arduino_controller_api():
             self.serial.close()
             _debug('Serial port closed.')
 
-    def get_output_voltage(self):
+    def get_dac(self):
         """
         Gets the current output power (percent).
         """
@@ -163,7 +163,7 @@ class arduino_controller_api():
         self.write("get_mode")
         return self.read()
     
-    def set_output_voltage(voltage):
+    def set_dac(self,voltage):
         """
         Sets the DAC output voltage.
         Parameters
@@ -212,7 +212,7 @@ class arduino_controller_api():
             return
         
         if not self.simulation:
-            self.write('set_temperature,'+str(T))
+            self.write('set_setpoint,'+str(T))
     
     def set_parameters(self,band, t_i, t_d):
         """
@@ -257,16 +257,12 @@ class arduino_controller_api():
         
     def set_period(self,period):
         """
-        
+        Set the control loop period.
 
         Parameters
         ----------
-        period : TYPE
-            DESCRIPTION.
-
-        Returns
-        -------
-        None.
+        period : int
+            Control loop period [milliseconds].
 
         """
         if simulation_mode:
@@ -276,12 +272,12 @@ class arduino_controller_api():
     
     def get_period(self):
         """
-        
+        Get the control loop period.
 
         Returns
         -------
         int
-            Control loop period.
+            Control loop period [milliseconds].
 
         """
         
@@ -408,11 +404,11 @@ class arduino_controller(_g.BaseObject):
         self.grid_mid.add(_g.Label('Mode:')).set_style('color: azure')
         
         # Open loop (manual) control mode activation button
-        self.button_open_loop  = self.grid_mid.add(_g.Button('Open Loop' ,checkable=True, tip='Enable manual temperature control.'))
+        self.button_open_loop  = self.grid_mid.add(_g.Button('Open Loop' ,checkable=True, tip='Enable manual temperature control.')).disable()
         self.button_open_loop.signal_toggled.connect(self._button_open_loop_toggled)
         
         # Closed loop control mode activation button
-        self.button_closed_loop = self.grid_mid.add(_g.Button('Closed Loop',checkable=True, tip='Enable PID temperature control.'))
+        self.button_closed_loop = self.grid_mid.add(_g.Button('Closed Loop',checkable=True, tip='Enable PID temperature control.')).disable()
         self.button_closed_loop.signal_toggled.connect(self._button_closed_loop_toggled)
         
         
@@ -471,9 +467,9 @@ class arduino_controller(_g.BaseObject):
         
         # Tab for monitoring and/or setting the DAC output voltage 
         self.grid_params.add(_g.Label('DAC output:'), alignment=1).set_style(style_3)
-        self.number_output = self.grid_params.add(_g.NumberBox(
+        self.number_dac = self.grid_params.add(_g.NumberBox(
             value=2.542, suffix='V', decimals = 4, tip='Arduino DAC output to peltier driver (0-5.000 V).',
-            signal_changed = self._number_output_changed), alignment=1).set_width(box_width).disable().set_style(style_3)
+            signal_changed = self._number_dac_changed), alignment=1).set_width(box_width).disable().set_style(style_3)
 
     
         # Tabs for band PID value
@@ -529,12 +525,12 @@ class arduino_controller(_g.BaseObject):
         self.api.set_temperature_setpoint(self.number_setpoint.get_value())
     
     
-    def _number_output_changed(self):
+    def _number_dac_changed(self):
         """
         Called when someone changes the output number.
         """
-        self.api.set_output_voltage(self.number_output.get_value())
-
+        self.api.set_dac(self.number_dac.get_value())
+        
 
     def _timer_tick(self, *a):
         """
@@ -544,11 +540,10 @@ class arduino_controller(_g.BaseObject):
         t = _time.time()-self.t0
         T = self.api.get_temperature()
         S = self.api.get_temperature_setpoint()
-        V = self.api.get_output_voltage()
+        V = self.api.get_dac()
         
-        # Update the temperature and setpoint tabs
+        # Update the temperature
         self.number_temperature(T)
-        self.number_setpoint.set_value(S, block_signals=True)
         
         # Convert output voltage to a percentage
         V = 100*(V/4095.)
@@ -585,17 +580,24 @@ class arduino_controller(_g.BaseObject):
             else:
                 self.label_status.set_text('Connected').set_colors('white' if _s.settings['dark_theme_qt'] else 'blue')
                 
+                self.button_open_loop  .enable()
+                self.button_closed_loop.enable()
+                
                 # Get temperature and parameter data currently on the arduino
-                T        = self.api.get_temperature()
-                S        = self.api.get_temperature_setpoint()
-                P, I, D  = self.api.get_parameters()
+                T            = self.api.get_temperature()
+                S            = self.api.get_temperature_setpoint()
+                period       = self.api.get_period()
+                P, I, D      = self.api.get_parameters()
+                dac_output   = self.api.get_dac()
                 
                 # Update the temperature, setpoint, and parameter tabs
                 self.number_temperature(T)
-                self.number_setpoint.set_value(S, block_signals=True)
-                self.number_proportional.set_value(P, block_signals=True)
-                self.number_integral.set_value(I, block_signals=True)
-                self.number_derivative.set_value(D, block_signals=True)
+                self.number_setpoint    .set_value(S,          block_signals=True)
+                self.number_period      .set_value(period,     block_signals=True)
+                self.number_proportional.set_value(P,          block_signals=True)
+                self.number_integral    .set_value(I,          block_signals=True)
+                self.number_derivative  .set_value(D,          block_signals=True)
+                self.number_dac         .set_value(dac_output, block_signals=True)
 
             # Record the time if it's not already there.
             if self.t0 is None: self.t0 = _time.time()
@@ -616,6 +618,10 @@ class arduino_controller(_g.BaseObject):
             # Turn off the open/closed loop buttons
             if self.button_open_loop.is_checked()  : self.button_open_loop.click()
             if self.button_closed_loop.is_checked(): self.button_closed_loop.click()
+            
+                            
+            self.button_open_loop  .disable()
+            self.button_closed_loop.disable()
             
             # Disconnect the API
             self.api.disconnect()
@@ -677,8 +683,9 @@ class arduino_controller(_g.BaseObject):
             
             # Disable access to PID variables in the GUI
             self.number_proportional.disable()
-            self.number_integral.disable()
-            self.number_derivative.disable()
+            self.number_integral    .disable()
+            self.number_derivative  .disable()
+            self.number_period      .disable()
             
             # Reset button color
             self.button_closed_loop.set_colors(background='')
@@ -706,7 +713,7 @@ class arduino_controller(_g.BaseObject):
                 self.timer.start()
                 
                 # Disable access to manual control variables in the GUI
-                self.number_output.enable()
+                self.number_dac.enable()
                 
                 # Change button color as indicator
                 self.button_open_loop.set_colors(text = 'white',background='red')
@@ -722,7 +729,7 @@ class arduino_controller(_g.BaseObject):
             self.timer.stop()
             
             # Disable access to manual control variables in the GUI
-            self.number_output.disable()
+            self.number_dac.disable()
             
             # Reset button color
             self.button_open_loop.set_colors(background='')

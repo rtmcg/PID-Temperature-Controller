@@ -1,3 +1,5 @@
+#define sgn(x) ((x) < 0 ? -1 : ((x) > 0 ? 1 : 0))
+
 void set_period(unsigned int _period){     
 /*
  * Sets the time between calls to control().
@@ -19,6 +21,8 @@ void set_period(unsigned int _period){
   TCCR1B |= (1 << CS12) | (1 << CS10);    // Set a prescaler of 1024 on Timer1 
   TIMSK1 |= (1 << OCIE1A);                // Enable Timer1 output compare match interrupt
   sei();                                  // Re-enable interrupts
+
+  period = _period;
 }
 
 void set_parameters(float _band, float _t_integral, float _t_derivative){
@@ -28,9 +32,23 @@ void set_parameters(float _band, float _t_integral, float _t_derivative){
     t_derivative = _t_derivative;   
   }
 
-void set_dac(unsigned int voltage_12bit){
+void set_dac(int voltage_12bit){
   
-  if(ENABLE_OUTPUT){dac.setVoltage(voltage_12bit,false);}
+  if(ENABLE_OUTPUT){
+
+    // Check if a polarity change is needed
+    if (sgn(dac_output) != sgn(voltage_12bit)){
+
+      // Bring the dac output to zero temporarily for safe polarity change
+      dac.setVoltage(0,false);
+      
+      if( sgn(voltage_12bit) ){
+        digitalWrite(POLARITY_PIN,LOW);}
+      else{ 
+        digitalWrite(POLARITY_PIN,HIGH);}
+    }
+    dac.setVoltage(abs(voltage_12bit),false);
+  }
   dac_output = voltage_12bit;
 }
 
@@ -42,7 +60,7 @@ void set_setpoint(float _setpoint){
   setpoint = _setpoint;
 }
 
-unsigned int get_dac(){
+int get_dac(){
   return dac_output;
 }
 
@@ -56,4 +74,8 @@ float get_temperature(){
 
 float get_setpoint(){
   return setpoint;
+}
+
+int get_period(){
+  return period;
 }
