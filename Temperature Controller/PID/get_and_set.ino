@@ -1,4 +1,4 @@
-#define sgn(x) ((x) < 0 ? -1 : ((x) > 0 ? 1 : 0))
+#define sgn(x) ((x) < 0 ? -1 : ((x) > 0 ? 1 : 0)) // Gets the sign (positive or negative) of the argument
 
 void set_period(unsigned int _period){     
 /*

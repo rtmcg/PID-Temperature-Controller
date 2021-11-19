@@ -36,7 +36,7 @@ enum MODES{OPEN_LOOP,CLOSED_LOOP};
 enum MODES mode = OPEN_LOOP;
 const char *MODE_NAMES[] = {"OPEN_LOOP","CLOSED_LOOP"};
 
-const int N = 16;       // Number of samples
+const int N = 16;       // Number of samples for temperature averaging
 
 void control(){
   /*
@@ -78,20 +78,20 @@ void loop() {
       parseData();
       newData = false;
   }
+  
   read_temperature();
-
 }
 
 void read_temperature(){
 
-  long sum = 0;
-  long sum_squared = 0;   //
-  int value;              //
+  long sum         = 0;          
+  long sum_squared = 0;  
+  int value;              
   
   for (int i = 0; i < N; i++) {     
-    value       =  analogRead(RTD_PIN);    
-    sum         += value;                           
-    sum_squared += value*(long)value;  // Need to type cast to long because int is 16 bit 
+    value        = analogRead(RTD_PIN); // Read RTD temperature at designated pin (0-1023 for 10-bit ADC)   
+    sum         += value;               // Sum values to prepare for averaging          
+    sum_squared += value*(long)value;   // Need to type cast to long because int is 16 bit 
   }
  
   double mu, sigma;   
@@ -99,8 +99,8 @@ void read_temperature(){
   mu    = sum / (double) N;               // Mean
   sigma = sqrt((sum_squared - sum*mu)/N); // Variance 
 
-  temperature = 5.0*mu/(1023);
-  error = (temperature - setpoint);
+  temperature = 5.0*mu/(1023);             // Calculate temperature (AVR 10-bit ADC)
+  error       = (temperature - setpoint);  // Temerpature error
 }
 
 ISR(TIMER1_COMPA_vect){ 

@@ -3,7 +3,6 @@
  * See https://forum.arduino.cc/t/serial-input-basics-updated/382007
  */
 
-
 const char startMarker = '<';
 const char endMarker   = '>'; 
 
@@ -121,7 +120,8 @@ void parseData() {
   if(strcmp(functionCall,"get_setpoint")    == 0){ 
     Serial.println(get_setpoint(),4);    
   }
-   if(strcmp(functionCall,"get_period")    == 0){ 
+  
+  if(strcmp(functionCall,"get_period")    == 0){ 
     Serial.println(get_period());    
   }
 }
