@@ -1,9 +1,13 @@
+
 #include <Wire.h>
 #include <Adafruit_MCP4725.h>
+#include <Adafruit_MAX31865.h>
 
 #define BAUD 9600
-#define RTD_PIN       A2
 #define POLARITY_PIN  8
+
+#define RREF      4300.0  // The value of the Rref resistor in the RTD package.
+#define RNOMINAL  1000.0  // The 'nominal' 0-degrees-C resistance of the sensor
 
 #define ENABLE_OUTPUT false 
 
@@ -21,7 +25,10 @@ unsigned int period;   // 1000 ms period
 
 /** Setup the external DAC **/
 Adafruit_MCP4725 dac;    // New DAC object
-int dac_output;          // The MCP4725 is a 12-bit DAC, so this variable must be <= 4095 
+int dac_output;          // The MCP4725 is a 12-bit DAC, so this variable must be <= 2**12-1 = 4095 
+
+/** Setup MAX 31865 resistance-to-digital converter **/
+Adafruit_MAX31865 rtd = Adafruit_MAX31865(10, 11, 12, 13); // Use software SPI: CS, DI, DO, CLK
 
 /** Serial data handling **/
 const byte data_size = 64;        // Size of the data buffer receiving from the serial line 
@@ -35,8 +42,6 @@ char * strtok_index;              // Used by strtok() as an index
 enum MODES{OPEN_LOOP,CLOSED_LOOP};
 enum MODES mode = OPEN_LOOP;
 const char *MODE_NAMES[] = {"OPEN_LOOP","CLOSED_LOOP"};
-
-const int N = 16;       // Number of samples for temperature averaging
 
 void control(){
   /*
@@ -62,11 +67,12 @@ void initialize(){
 void setup() {
   Serial.begin(BAUD);               
   if(ENABLE_OUTPUT){
-    pinMode(POLARITY_PIN, OUTPUT);
-    digitalWrite(POLARITY_PIN, LOW);
-    dac.begin(0x60);
+    pinMode(POLARITY_PIN, OUTPUT);    // Enable Polarity pin
+    digitalWrite(POLARITY_PIN, LOW);  //
+    dac.begin(0x60);                  // Start communication with the external DAC
   }
-  initialize();
+  rtd.begin(MAX31865_3WIRE);          // Begin SPI communcation with the MAX 31865 chip
+  initialize();                       // Initialize relevant variables 
 }
 
 void loop() {
@@ -83,24 +89,8 @@ void loop() {
 }
 
 void read_temperature(){
-
-  long sum         = 0;          
-  long sum_squared = 0;  
-  int value;              
-  
-  for (int i = 0; i < N; i++) {     
-    value        = analogRead(RTD_PIN); // Read RTD temperature at designated pin (0-1023 for 10-bit ADC)   
-    sum         += value;               // Sum values to prepare for averaging          
-    sum_squared += value*(long)value;   // Need to type cast to long because int is 16 bit 
-  }
- 
-  double mu, sigma;   
-  
-  mu    = sum / (double) N;               // Mean
-  sigma = sqrt((sum_squared - sum*mu)/N); // Variance 
-
-  temperature = 5.0*mu/(1023);             // Calculate temperature (AVR 10-bit ADC)
-  error       = (temperature - setpoint);  // Temerpature error
+  temperature = rtd.temperature(RNOMINAL, RREF);
+  error       = temperature - setpoint;         
 }
 
 ISR(TIMER1_COMPA_vect){ 

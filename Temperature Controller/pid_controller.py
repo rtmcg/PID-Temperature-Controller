@@ -110,7 +110,7 @@ class pid_controller(_g.BaseObject):
         # Add Timeout selctor to GUI
         self.grid_top.add(_g.Label('Timeout:'))
         self.number_timeout = self.grid_top.add(
-            _g.NumberBox(200, dec=True, bounds=(1, None), suffix=' ms',
+            _g.NumberBox(500, dec=True, bounds=(1, None), suffix=' ms',
                          tip='How long to wait for an answer before giving up (ms).', autosettings_path=name+'.number_timeout')).set_width(100)
 
         # Add a button to connect to serial port to GUI
@@ -261,8 +261,8 @@ class pid_controller(_g.BaseObject):
         
         # Update the temperature
         self.number_temperature(T)
-        self.number_dac(V)
-        self.number_setpoint(S)
+        #self.number_dac(V)
+        #self.number_setpoint(S)
         
         # Convert output voltage to a percentage
         V = 100*(V/4095.)
@@ -327,6 +327,7 @@ class pid_controller(_g.BaseObject):
             # Disable other controls
             self.combo_baudrates.disable()
             self.combo_ports.disable()
+            self.number_timeout.disable()
             
             # Change the button color to indicate we are connected
             self.button_connect.set_colors(background = 'blue')
@@ -370,7 +371,7 @@ class pid_controller(_g.BaseObject):
                 
                 # Set the arduino to closed loop mode
                 self.api.set_mode("CLOSED_LOOP")
-                
+
                 # Verify the arduino has changed mode
                 if( self.api.get_mode() != "CLOSED_LOOP"):
                     print("problem...")

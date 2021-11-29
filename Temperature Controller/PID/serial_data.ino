@@ -106,7 +106,7 @@ void parseData() {
   
   if(strcmp(functionCall,"get_temperature") == 0){
     float _temperature = get_temperature();
-    Serial.println(_temperature,6);
+    Serial.println(_temperature,2);
   }
   
   if(strcmp(functionCall,"get_parameters")  == 0){

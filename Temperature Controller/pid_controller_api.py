@@ -84,8 +84,8 @@ class pid_api():
         if self.simulation: return _n.random.randint(0,4095)
         else:                    
             self.write('get_dac')
-            return 5.*int(self.read())/(2**_dac_bit_depth-1)
-
+            return int(self.read())
+        
     def get_temperature(self):
         """
         Gets the current temperature in Celcius.
@@ -235,6 +235,7 @@ class pid_api():
             return
         
         self.write("set_mode,%s"%mode)
+
         
     def set_period(self,period):
         """
