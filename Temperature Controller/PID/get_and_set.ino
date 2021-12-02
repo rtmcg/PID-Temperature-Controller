@@ -14,7 +14,7 @@ void set_period(unsigned int _period){
   TCCR1A = 0;               // Blank out Timer control register A 
   TCCR1B = 0;               // Blank out Timer control register B 
   TCNT1  = 0;               // Initialize Timer1's counter value to be 0
-  OCR1A  = num_clk_ticks;   /* Set the output compare register 1 to the number of ticks found earlier */    
+  OCR1A  = num_clk_ticks;   /* Set the output compare register 1 to the number of ticks calculated earlier */    
                             /* Note that OCR1a is a 16-bit register, so _number <= 65,535             */ 
 
   TCCR1B |= (1 << WGM12);                 // Enable clear timer on compare match (CTC) mode
@@ -35,20 +35,29 @@ void set_parameters(float _band, float _t_integral, float _t_derivative){
 void set_dac(int voltage_12bit){
   
   if(ENABLE_OUTPUT){
-
+    
     // Check if a polarity change is needed
     if (sgn(dac_output) != sgn(voltage_12bit)){
 
       // Bring the dac output to zero temporarily for safe polarity change
       dac.setVoltage(0,false);
-      
-      if( sgn(voltage_12bit) ){
-        digitalWrite(POLARITY_PIN,LOW);}
-      else{ 
-        digitalWrite(POLARITY_PIN,HIGH);}
+
+      // No need to change sign if we are turning the output off
+      if(voltage_12bit == 0){ 
+         dac_output = voltage_12bit;
+         return;
+      }
+
+      // Flip the polarity pin accordingly
+      if(voltage_12bit < 0) digitalWrite(POLARITY_PIN,HIGH);
+      else                  digitalWrite(POLARITY_PIN,LOW);
     }
+
+    // Set the dac to desired output
     dac.setVoltage(abs(voltage_12bit),false);
   }
+  
+  // Save the full signed output 
   dac_output = voltage_12bit;
 }
 

@@ -5,8 +5,7 @@ import time as _time
 _serial_left_marker  = '<'
 _serial_right_marker = '>'  
 
-_debug_enabled       = True
-_dac_bit_depth       = 12  
+_debug_enabled       = True 
 
 
 class pid_api():
@@ -144,34 +143,29 @@ class pid_api():
         self.write("get_mode")
         return self.read()
     
-    def set_dac(self,voltage):
+    def set_dac(self,level):
         """
-        Sets the DAC output voltage.
+        Sets the DAC output.
+        
         Parameters
         ----------
-        voltage : float
-            The desired dac output voltage.
-        
-        Note
-        ----
-        The true output voltage of the dac will be the closest voltage
-        that can be generated with the dac's bit depth.
-        
+        level : int
+            The desired dac level. This number can range from 0 to 
+            2**dac_bit_depth - 1. The output voltage will depend on 
+            the dac supply voltage. 
+            
         """
         
         if self.simulation: return
         
         # Get the control mode
         mode = self.get_mode()
-        
-        # Convert floating point number into closest integer using _dac_bit_depth 
-        voltage_bit = round( (2**_dac_bit_depth-1)*voltage/5.)
-        
+         
         # Check that we are in OPEN_LOOP operation before attempting to set dac voltage
         if(mode == "OPEN_LOOP"):
-            self.write("set_dac, "+str(voltage_bit))
+            self.write("set_dac, "+str(level))
         else:
-            print("Doing nothing. DAC output voltage can only be directly controlled in OPEN_LOOP mode!")        
+            print("Doing nothing. DAC output can only be directly controlled in OPEN_LOOP mode!")        
     
     def set_temperature_setpoint(self, T=20.0, temperature_limit=None):
         """
@@ -247,10 +241,10 @@ class pid_api():
             Control loop period [milliseconds].
 
         """
-        if simulation_mode:
+        if self.simulation:
             return
         
-        self.write('set_period,'+int(period))
+        self.write('set_period,%d'%(period))
     
     def get_period(self):
         """

@@ -82,11 +82,10 @@ void parseData() {
   }
   
   if(strcmp(functionCall,"set_period")      == 0){
-    strtok_index = strtok(NULL, ",");
     set_period(atoi(strtok_index));
   }
   
-  if(strcmp(functionCall,"set_setpoint")    == 0){       
+  if(strcmp(functionCall,"set_setpoint")    == 0){      
     set_setpoint(atof(strtok_index));    
   }
   

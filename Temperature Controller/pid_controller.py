@@ -12,6 +12,7 @@ except: _comports = None
 _p = _traceback.print_last
 _g = _egg.gui
 
+_dac_bit_depth = 12 
 _debug_enabled = True
 
 # Dark theme
@@ -185,7 +186,7 @@ class pid_controller(_g.BaseObject):
         # Tab for monitoring and/or setting the DAC output voltage 
         self.grid_params.add(_g.Label('DAC output:'), alignment=1).set_style(style_3)
         self.number_dac = self.grid_params.add(_g.NumberBox(
-            value=2.542, suffix='V', decimals = 4, tip='Arduino DAC output to peltier driver (0-5.000 V).',
+            value=0.000, suffix='V', decimals = 4, tip='Arduino DAC output to peltier driver (0-5.000 V).',
             signal_changed = self._number_dac_changed), alignment=1).set_width(box_width).disable().set_style(style_3)
 
     
@@ -193,7 +194,7 @@ class pid_controller(_g.BaseObject):
         self.grid_params1.add(_g.Label('Band:'),alignment=1).set_style(style_6)
         self.number_proportional = self.grid_params1.add(_g.NumberBox(
             value = 10.0, suffix = '°C', bounds = (0,100.0), decimals=4,
-            autosettings_path = name+'.Proportional',
+            autosettings_path = name+'.Proportional', signal_changed = self._number_parameter_changed,
             tip = 'Prportional band.'), alignment=1).set_width(box_width).disable().set_style(style_6)
         
         # New row
@@ -203,7 +204,7 @@ class pid_controller(_g.BaseObject):
         self.grid_params1.add(_g.Label('Integral time:'),alignment=1).set_style(style_6)
         self.number_integral = self.grid_params1.add(_g.NumberBox(
             value = 88.29, suffix = 's', bounds = (0,100.0), decimals=4,
-            autosettings_path = name+'.integral',
+            autosettings_path = name+'.integral', signal_changed = self._number_parameter_changed,
             tip = 'Integral action time.'), alignment=1).set_width(box_width).disable().set_style(style_6)
         
         # New row
@@ -213,7 +214,7 @@ class pid_controller(_g.BaseObject):
         self.grid_params1.add(_g.Label('Derivative time:'),alignment=1).set_style(style_6)
         self.number_derivative = self.grid_params1.add(_g.NumberBox(
             value = 1.02, suffix = 's', bounds = (0,100.0), decimals=4,
-            autosettings_path = name+'.derivative',
+            autosettings_path = name+'.derivative', signal_changed = self._number_parameter_changed,
             tip = 'Derivative action time.'), alignment=1).set_width(box_width).disable().set_style(style_6)
         
         # Make the plotter.
@@ -244,9 +245,37 @@ class pid_controller(_g.BaseObject):
     
     def _number_dac_changed(self):
         """
-        Called when someone changes the output number.
+        Called when someone changes the dac output number.
+        
+        Note
+        ----
+        The true output voltage of the dac will be the closest voltage
+        that can be generated with the dac's bit depth.
+        
         """
-        self.api.set_dac(self.number_dac.get_value())
+        
+        voltage = self.number_dac.get_value()
+        
+        # Convert floating point number into closest integer using _dac_bit_depth 
+        bit_voltage = round( (2**_dac_bit_depth-1)*voltage/5.)
+        
+        self.api.set_dac(bit_voltage)
+        
+    def _number_parameter_changed(self):
+        """
+        Called when someone changes one of the control parameters.
+
+        Returns
+        -------
+        None.
+
+        """
+        
+        band = self.number_proportional.get_value()
+        t_i  = self.number_integral    .get_value()
+        t_d  = self.number_derivative  .get_value()
+        
+        self.api.set_parameters(band, t_i, t_d)
         
 
     def _timer_tick(self, *a):
@@ -254,19 +283,27 @@ class pid_controller(_g.BaseObject):
         Called whenever the timer ticks. Let's update the plot and save the latest data.
         """
         # Get the time, temperature, setpoint, and output voltage
-        t = _time.time()-self.t0
-        T = self.api.get_temperature()
-        S = self.api.get_temperature_setpoint()
-        V = self.api.get_dac()
-        
-        # Update the temperature
-        self.number_temperature(T)
-        #self.number_dac(V)
-        #self.number_setpoint(S)
+        t       = _time.time()-self.t0
+        T       = self.api.get_temperature()
+        S       = self.api.get_temperature_setpoint()
+        V       = self.api.get_dac()
+        P, I, D = self.api.get_parameters()
         
         # Convert output voltage to a percentage
-        V = 100*(V/4095.)
-
+        V = 5.*(V/4095.)
+        
+        # Update the temperature, dac voltage, and setpoint
+        self.number_temperature.set_value(T)
+        self.number_dac        .set_value(V, block_signals=True)
+        self.number_setpoint   .set_value(S, block_signals=True)
+        
+        # Update control parameters
+        self.number_proportional.set_value(P, block_signals=True)
+        self.number_integral    .set_value(I, block_signals=True)
+        self.number_derivative  .set_value(D, block_signals=True)
+        
+        #self.number_derivative
+        
         # Append this to the databox
         self.plot.append_row([t, T, S, V], ckeys=['Time (s)', 'Temperature (C)', 'Setpoint (C)', 'DAC Voltage (%)'],)
         self.plot.plot()        

@@ -9,7 +9,7 @@
 #define RREF      4300.0  // The value of the Rref resistor in the RTD package.
 #define RNOMINAL  1000.0  // The 'nominal' 0-degrees-C resistance of the sensor
 
-#define ENABLE_OUTPUT false 
+#define ENABLE_OUTPUT true 
 
 /** Basic parameters **/ 
 double temperature; 
@@ -25,7 +25,7 @@ unsigned int period;   // 1000 ms period
 
 /** Setup the external DAC **/
 Adafruit_MCP4725 dac;    // New DAC object
-int dac_output;          // The MCP4725 is a 12-bit DAC, so this variable must be <= 2**12-1 = 4095 
+int dac_output = 0;          // The MCP4725 is a 12-bit DAC, so this variable must be <= 2**12-1 = 4095 
 
 /** Setup MAX 31865 resistance-to-digital converter **/
 Adafruit_MAX31865 rtd = Adafruit_MAX31865(10, 11, 12, 13); // Use software SPI: CS, DI, DO, CLK
@@ -48,18 +48,17 @@ void control(){
    * 
    * 
    */
-
-  if (error > band/2) {
+  if (error >= band/2) {
     set_dac(0);
   } 
   else if (error < -1*band/2) {
-    set_dac(4095);
+    set_dac(-3000);
   }
 }
 
 void initialize(){
   set_setpoint(24.50);
-  set_parameters(10.0, 8.26, 2.32);
+  set_parameters(1.0, 0, 0);
   set_period(1000);
   set_dac(0);
 }
@@ -68,8 +67,10 @@ void setup() {
   Serial.begin(BAUD);               
   if(ENABLE_OUTPUT){
     pinMode(POLARITY_PIN, OUTPUT);    // Enable Polarity pin
-    digitalWrite(POLARITY_PIN, LOW);  //
-    dac.begin(0x60);                  // Start communication with the external DAC
+    digitalWrite(POLARITY_PIN, LOW);  // Set Polarity pin LOW
+    
+    dac.begin(0x62);                  // Start communication with the external DAC
+    dac.setVoltage(0, false);         // Set DAC output to ZERO
   }
   rtd.begin(MAX31865_3WIRE);          // Begin SPI communcation with the MAX 31865 chip
   initialize();                       // Initialize relevant variables 
@@ -99,6 +100,8 @@ ISR(TIMER1_COMPA_vect){
  */
  
   if(mode == CLOSED_LOOP){
+    interrupts(); /* Re-enable interrupts */
+                  /* Interrupts are needed to communicate with the DAC (MCP4725) via I2C */
     control();   
   }
 }
