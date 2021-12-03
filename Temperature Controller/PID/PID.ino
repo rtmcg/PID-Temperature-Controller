@@ -35,7 +35,7 @@ const byte data_size = 64;        // Size of the data buffer receiving from the 
 char received_data[data_size];    // Array for storing received data
 char temp_data    [data_size];    // Temporary array for use when parsing
 char functionCall[20]  = {0};     //
-boolean newData = false;          //
+boolean newData = false;          // Flag used to indicate if new data has been found on the serial line
 char * strtok_index;              // Used by strtok() as an index
 
 /** Control Modes **/
@@ -45,18 +45,28 @@ const char *MODE_NAMES[] = {"OPEN_LOOP","CLOSED_LOOP"};
 
 void control(){
   /*
-   * 
-   * 
+   * This is the control function used to change power 
+   * sent to the peltier based on the current setpoint and  
+   * most recently measured temperature.
    */
+  /*
   if (error >= band/2) {
-    set_dac(0);
+    set_dac(4095);
   } 
   else if (error < -1*band/2) {
-    set_dac(-3000);
-  }
+    set_dac(0);
+  }*/
+  double p = band*error + t_integral;
+
+  if(p>4095){p=4095;}
+
+  set_dac(p);
 }
 
 void initialize(){
+  /*
+   * Initial control parameters 
+   */
   set_setpoint(24.50);
   set_parameters(1.0, 0, 0);
   set_period(1000);
@@ -77,31 +87,35 @@ void setup() {
 }
 
 void loop() {
-  receive_data();
+  receive_data();                       /* Look for and grab data on the serial line. */
+                                        /* If new data is found, the newData flag will be set */ 
 
   if (newData == true) {
       strcpy(temp_data, received_data); /* this temporary copy is necessary to protect the original data    */
                                         /* because strtok() used in parseData() replaces the commas with \0 */
-      parseData();
-      newData = false;
+      parseData();                      // Parse the data for commands
+      newData = false;                  // Reset newData flag
   }
   
   read_temperature();
 }
 
 void read_temperature(){
-  temperature = rtd.temperature(RNOMINAL, RREF);
-  error       = temperature - setpoint;         
+  temperature = rtd.temperature(RNOMINAL, RREF); // One shot temperature measurement of the rtd 
+  error       = temperature - setpoint;          // 
 }
 
 ISR(TIMER1_COMPA_vect){ 
 /* 
  *  Timer1 compare interrupt 
+ *  This interrupt is called at regular intervals. This interval can be set with the set_period() function.  
+ *  The main function of this interrupt is to call the control() function at fixed time intervals.
  */
  
   if(mode == CLOSED_LOOP){
-    interrupts(); /* Re-enable interrupts */
+    interrupts(); /* Re-enable interrupts (allowing nested interrupts) */
                   /* Interrupts are needed to communicate with the DAC (MCP4725) via I2C */
-    control();   
+                  
+    control();    
   }
 }

@@ -66,6 +66,9 @@ void set_mode(MODES _mode){
 }
 
 void set_setpoint(float _setpoint){
+  /*
+   * Set Temperature setpoint.
+   */
   setpoint = _setpoint;
 }
 
@@ -77,11 +80,17 @@ MODES get_mode(){
   return mode;
 }
 
-float get_temperature(){ 
+float get_temperature(){
+  /* 
+   *  Get the most recently measured temperature.
+   */
   return temperature;
 }
 
 float get_setpoint(){
+  /*
+   * Get the current temperature setpoint.
+   */
   return setpoint;
 }
 

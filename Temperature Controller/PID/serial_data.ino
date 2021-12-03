@@ -123,4 +123,20 @@ void parseData() {
   if(strcmp(functionCall,"get_period")    == 0){ 
     Serial.println(get_period());    
   }
+
+  if(strcmp(functionCall,"get_all_variables") == 0){
+    Serial.print(get_temperature(),2);
+    Serial.print(',');
+    Serial.print(get_setpoint(),4);
+    Serial.print(',');
+    Serial.print(get_dac());
+    Serial.print(',');
+    Serial.print(band,4);
+    Serial.print(',');
+    Serial.print(t_integral,4);
+    Serial.print(',');
+    Serial.print(t_derivative,4); 
+    Serial.print(',');
+    Serial.println(get_period()); 
+  }
 }
