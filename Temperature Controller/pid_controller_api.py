@@ -21,14 +21,14 @@ class pid_api():
     baudrate=9600 : int
         Baud rate of the connection. Must match the instrument setting.
         
-    timeout=1000 : number
+    timeout=3000 : number
         How long to wait for responses before giving up (ms). 
         
     temperature_limit=85 : float
         Upper limit on the temperature setpoint (C).
         
     """
-    def __init__(self, port='COM3', baudrate=9600, timeout=1000, temperature_limit=85):
+    def __init__(self, port='COM3', baudrate=9600, timeout=3000, temperature_limit=80):
 
         self._temperature_limit = temperature_limit        
 
@@ -78,7 +78,7 @@ class pid_api():
 
     def get_dac(self):
         """
-        Gets the current output power (percent).
+        Gets the current output level of the dac.
         """
         if self.simulation: return _n.random.randint(0,4095)
         else:                    
@@ -215,9 +215,7 @@ class pid_api():
         ----------
         mode : str
             The desired operating mode.
-        Returns
-        -------
-        None.
+
         """
         
         if( mode != "OPEN_LOOP" and mode != "CLOSED_LOOP"):
@@ -229,7 +227,6 @@ class pid_api():
             return
         
         self.write("set_mode,%s"%mode)
-
         
     def set_period(self,period):
         """
@@ -264,13 +261,16 @@ class pid_api():
     def write(self,raw_data):
         """
         Writes data to the serial line, formatted appropriately to be read by the arduino temperature controller.        
+        
         Parameters
         ----------
         raw_data : str
             Raw data string to be sent to the arduino.
+        
         Returns
         -------
         None.
+        
         """
         encoded_data = (_serial_left_marker + raw_data + _serial_right_marker).encode()
         self.serial.write(encoded_data) 
@@ -278,13 +278,50 @@ class pid_api():
     def read(self):
         """
         Reads data from the serial line.
+        
         Returns
         -------
-        TYPE
-            DESCRIPTION.
+        str
+            Raw data string read from the serial line.
         """
         return self.serial.read_until(expected = '\r\n'.encode()).decode().strip('\r\n')
+    
+    def get_all_variables(self):
+        """
+        Get all arduino parameters in one shot.
 
+        Returns
+        -------
+        _temp : float
+            DESCRIPTION.
+        _setpoint : float
+            DESCRIPTION.
+        _dac : int
+            DESCRIPTION.
+        _band : float
+            DESCRIPTION.
+        _ti : float
+            DESCRIPTION.
+        _td : float
+            DESCRIPTION.
+        _period : int
+            DESCRIPTION.
+
+        """
+        self.write('get_all_variables')
+        raw_params = self.read().split(',')
+        
+        _temp      = float(raw_params[0])
+        _setpoint  = float(raw_params[1])
+        _dac       = float(raw_params[2]) 
+        
+        _band    = float(raw_params[3])
+        _ti      = float(raw_params[4])
+        _td      = float(raw_params[5]) 
+        _period  = float(raw_params[6])
+        
+        return _temp, _setpoint, _dac, _band, _ti, _td, _period
+        
 def _debug(*a):
     if _debug_enabled:
         s = []

@@ -13,6 +13,8 @@ _p = _traceback.print_last
 _g = _egg.gui
 
 _dac_bit_depth = 12 
+_dac_voltage   = 5.
+
 _debug_enabled = True
 
 # Dark theme
@@ -50,7 +52,7 @@ class pid_controller(_g.BaseObject):
     window_size=[1,1] : list
         Dimensions of the window.
     """
-    def __init__(self, name='Arduino_PID', api_class = pid_api, temperature_limit=500, show=True, block=False, window_size=None):
+    def __init__(self, name='Arduino_PID', api_class = pid_api, temperature_limit=100, show=True, block=False, window_size=None):
         
         if not _mp._serial: _s._warn('You need to install pyserial to use the Arduino based PID temperature controller.')
         
@@ -70,22 +72,33 @@ class pid_controller(_g.BaseObject):
         
         ## Create partitions in the GUI window
         
-        self.grid_top = self.window.place_object(_g.GridLayout(margins=False), 0, 0, alignment = 1,column_span = 2)
+        self.grid_top = self.window.place_object(
+            _g.GridLayout(margins=False), 0, 0, alignment = 1,column_span = 2)
         
         self.window.new_autorow()
-        self.grid_mid = self.window.place_object(_g.GridLayout(margins=False), 0, 1, alignment = 1, column_span = 1) 
+        self.grid_mid         = self.window.place_object(
+            _g.GridLayout(margins=False), 0, 1, alignment = 1, column_span = 1) 
         
         self.window.new_autorow()
-        self.grid_temperature = self.window.place_object(_g.GridLayout(margins=False), 0, 3, alignment=1, column_span =1)
+        self.grid_temperature = self.window.place_object(
+            _g.GridLayout(margins=False), 0, 3, alignment=1, column_span =1)
         
         self.window.new_autorow()
-        self.grid_params = self.window.place_object(_g.GridLayout(margins=False), 0, 4, alignment=1, column_span = 1)
+        self.grid_params = self.window.place_object(
+            _g.GridLayout(margins=False), 0, 4, alignment=1, column_span = 1)
         
         self.window.new_autorow()
-        self.grid_params1 = self.window.place_object(_g.GridLayout(margins=False), 1, 4, alignment=1, column_span = 1)
+        self.grid_params1 = self.window.place_object(
+            _g.GridLayout(margins=False), 1, 4, alignment=1, column_span = 1)
+        
+        '''
+        self.window.new_autorow()
+        self.grid_params2 = self.window.place_object(
+            _g.GridLayout(margins=False), 2, 4, alignment=1, column_span = 1)'''
         
         self.window.new_autorow()
-        self.grid_bot = self.window.place_object(_g.GridLayout(margins=False), 0, 5, alignment=0, column_span =4)
+        self.grid_bot = self.window.place_object(
+            _g.GridLayout(margins=False), 0, 5, alignment=0, column_span =4)
 
        # Get all the available ports
         self._ports = [] # Actual port names for connecting
@@ -178,6 +191,7 @@ class pid_controller(_g.BaseObject):
         self.grid_params.add(_g.Label('Contol Period:'), alignment=1).set_style(style_5)
         self.number_period = self.grid_params.add(_g.NumberBox(
             value = 100, suffix = 'ms', bounds = (0,10000), autosettings_path = name+'.Period',
+            signal_changed = self._number_period_changed,
             tip = 'Time between calls to the control function.'), alignment=1).set_width(box_width).disable().set_style(style_5)
 
         # New row
@@ -193,7 +207,7 @@ class pid_controller(_g.BaseObject):
         # Tabs for band PID value
         self.grid_params1.add(_g.Label('Band:'),alignment=1).set_style(style_6)
         self.number_proportional = self.grid_params1.add(_g.NumberBox(
-            value = 10.0, suffix = '°C', bounds = (0,100.0), decimals=4,
+            value = 10.0, suffix = '°C', bounds = (0,1000000.0), decimals=4,
             autosettings_path = name+'.Proportional', signal_changed = self._number_parameter_changed,
             tip = 'Prportional band.'), alignment=1).set_width(box_width).disable().set_style(style_6)
         
@@ -203,7 +217,7 @@ class pid_controller(_g.BaseObject):
         # Tab for integral time PID value
         self.grid_params1.add(_g.Label('Integral time:'),alignment=1).set_style(style_6)
         self.number_integral = self.grid_params1.add(_g.NumberBox(
-            value = 88.29, suffix = 's', bounds = (0,100.0), decimals=4,
+            value = 88.29, suffix = 's', bounds = (0,1000000.0), decimals=4,
             autosettings_path = name+'.integral', signal_changed = self._number_parameter_changed,
             tip = 'Integral action time.'), alignment=1).set_width(box_width).disable().set_style(style_6)
         
@@ -216,6 +230,22 @@ class pid_controller(_g.BaseObject):
             value = 1.02, suffix = 's', bounds = (0,100.0), decimals=4,
             autosettings_path = name+'.derivative', signal_changed = self._number_parameter_changed,
             tip = 'Derivative action time.'), alignment=1).set_width(box_width).disable().set_style(style_6)
+        
+        '''
+        self.grid_params2.add(_g.Label('Constant:'),alignment=1).set_style(style_6)
+        self.number_constant = self.grid_params2.add(_g.NumberBox(
+            value = 1.02, suffix = 's', bounds = (0,100.0), decimals=4,
+            autosettings_path = name+'.offset', 
+            tip = 'Constant term.'), alignment=1).set_width(box_width).disable().set_style(style_6)
+        # New row
+        self.grid_params2.new_autorow()
+        
+        self.grid_params2.add(_g.Label('Offset:'),alignment=1).set_style(style_6)
+        self.number_offset = self.grid_params2.add(_g.NumberBox(
+            value = 1.02, suffix = 's', bounds = (0,100.0), decimals=4,
+            autosettings_path = name+'.offset', 
+            tip = 'Offset term.'), alignment=1).set_width(box_width).disable().set_style(style_6)
+        '''
         
         # Make the plotter.
         self.grid_bot.new_autorow()
@@ -237,7 +267,9 @@ class pid_controller(_g.BaseObject):
 
     def _number_setpoint_changed(self, *a):
         """
-        Called when someone changes the setpoint number.
+        Called when someone changes the setpoint number in the GUI.
+        Updates the temperature setpoint on the arduino.
+        
         """
         # Set the temperature setpoint
         self.api.set_temperature_setpoint(self.number_setpoint.get_value())
@@ -245,7 +277,8 @@ class pid_controller(_g.BaseObject):
     
     def _number_dac_changed(self):
         """
-        Called when someone changes the dac output number.
+        Called when someone changes the dac output number in the GUI.
+        Updates the dac output on the arduino.
         
         Note
         ----
@@ -261,13 +294,11 @@ class pid_controller(_g.BaseObject):
         
         self.api.set_dac(bit_voltage)
         
+        
     def _number_parameter_changed(self):
         """
-        Called when someone changes one of the control parameters.
-
-        Returns
-        -------
-        None.
+        Called when someone changes one of the control parameters in the GUI.
+        Updates all the control parameters on the arduino.
 
         """
         
@@ -276,36 +307,48 @@ class pid_controller(_g.BaseObject):
         t_d  = self.number_derivative  .get_value()
         
         self.api.set_parameters(band, t_i, t_d)
-        
 
+
+    def _number_period_changed(self):
+        """
+        Called when someone changes the control period number in the GUI.
+        Updates the control period on the arduino.
+
+        """
+        _period = self.number_period.get_value()
+        
+        self.api.set_period(_period)
+        
+        
     def _timer_tick(self, *a):
         """
-        Called whenever the timer ticks. Let's update the plot and save the latest data.
-        """
-        # Get the time, temperature, setpoint, and output voltage
-        t       = _time.time()-self.t0
-        T       = self.api.get_temperature()
-        S       = self.api.get_temperature_setpoint()
-        V       = self.api.get_dac()
-        P, I, D = self.api.get_parameters()
+        Called whenever the timer ticks. 
+        Updates all parameters and the plot and saves the latest data.
         
-        # Convert output voltage to a percentage
-        V = 5.*(V/4095.)
+        """
+        
+        t                        = _time.time()-self.t0
+        T, S, dac_level, P, I, D, period = self.api.get_all_variables()
+        
+        # Convert dac_level to a fraction (based on DAC bit depth)
+        output_fraction = dac_level/(2**_dac_bit_depth-1)
+        
+        # Compute the dac output voltage
+        dac_voltage = _dac_voltage*output_fraction
         
         # Update the temperature, dac voltage, and setpoint
         self.number_temperature.set_value(T)
-        self.number_dac        .set_value(V, block_signals=True)
+        self.number_dac        .set_value(dac_voltage, block_signals=True)
         self.number_setpoint   .set_value(S, block_signals=True)
         
         # Update control parameters
         self.number_proportional.set_value(P, block_signals=True)
         self.number_integral    .set_value(I, block_signals=True)
         self.number_derivative  .set_value(D, block_signals=True)
-        
-        #self.number_derivative
-        
+        self.number_period      .set_value(period, block_signals=True)
+                
         # Append this to the databox
-        self.plot.append_row([t, T, S, V], ckeys=['Time (s)', 'Temperature (C)', 'Setpoint (C)', 'DAC Voltage (%)'],)
+        self.plot.append_row([t, T, S, 100*output_fraction], ckeys=['Time (s)', 'Temperature (C)', 'Setpoint (C)', 'DAC Voltage (%)'],)
         self.plot.plot()        
 
         # Update GUI
@@ -315,7 +358,7 @@ class pid_controller(_g.BaseObject):
     def _button_connect_toggled(self, *a):
         """
         Called when the connect button is toggled in the GUI. 
-        Creates the API.
+        Creates the API and imports data from the arduino.
         """
         if self._api_class is None:
             raise Exception('You need to specify an api_class when creating a serial GUI object.')
@@ -397,6 +440,21 @@ class pid_controller(_g.BaseObject):
     
     
     def _button_closed_loop_toggled(self):
+        """
+        Called when the closed loop button is toggled in the GUI.
+        Enables all closed loop control parameter fields in the GUI
+        (band, derivative, integral, period).
+        Disables all open loop control parameter fields in the GUI
+        (Dac output).
+        Changes arduino mode to CLOSED_LOOP.
+        
+
+        Raises
+        ------
+        Exception
+            If the arduino fails to change mode.
+
+        """
         
         _debug('button_closed_loop clicked.')
         
@@ -451,6 +509,20 @@ class pid_controller(_g.BaseObject):
         
         
     def _button_open_loop_toggled(self):
+        """
+        Called when the open loop button is toggled in the GUI.
+        Enables all open loop control parameter fields in the GUI (Dac output).
+        Disables all closed loop control parameter fields in the GUI
+        (band, derivative, integral, period).
+        Changes arduino mode to CLOSED_LOOP.
+        
+
+        Raises
+        ------
+        Exception
+            If the arduino fails to change mode.
+
+        """
         
         _debug('button_open_loop clicked.')
         
@@ -526,4 +598,4 @@ def _debug(*a):
 
 if __name__ == '__main__':
     _egg.clear_egg_settings()
-    self = pid_controller(temperature_limit=700)
+    self = pid_controller(temperature_limit=80)
