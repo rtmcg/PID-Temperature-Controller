@@ -206,7 +206,7 @@ class pid_api():
         """
         if self.simulation: return 
         
-        self.write('set_parameters,%.2f,%.2f,%.2f'%(band,t_i,t_d)) 
+        self.write('set_parameters,%.4f,%.4f,%.4f'%(band,t_i,t_d)) 
         
     def set_mode(self,mode):
         """
