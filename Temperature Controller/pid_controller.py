@@ -70,198 +70,33 @@ class pid_controller(_g.BaseObject):
         # Create GUI window
         self.window   = _g.Window(self.name, autosettings_path=name+'.window',event_close = self._window_close)
         
-        ## Create partitions in the GUI window
-        
-        self.grid_top = self.window.place_object(
-            _g.GridLayout(margins=False), 0, 0, alignment = 1,column_span = 2)
-        
-        self.window.new_autorow()
-        self.grid_mid         = self.window.place_object(
-            _g.GridLayout(margins=False), 0, 1, alignment = 1, column_span = 1) 
-        
-        self.window.new_autorow()
-        self.grid_temperature = self.window.place_object(
-            _g.GridLayout(margins=False), 0, 3, alignment=1, column_span =1)
-        
-        self.window.new_autorow()
-        self.grid_params = self.window.place_object(
-            _g.GridLayout(margins=False), 0, 4, alignment=1, column_span = 1)
-        
-        self.window.new_autorow()
-        self.grid_params1 = self.window.place_object(
-            _g.GridLayout(margins=False), 1, 4, alignment=1, column_span = 1)
-        
-        '''
-        self.window.new_autorow()
-        self.grid_params2 = self.window.place_object(
-            _g.GridLayout(margins=False), 2, 4, alignment=1, column_span = 1)'''
-        
-        self.window.new_autorow()
-        self.grid_bot = self.window.place_object(
-            _g.GridLayout(margins=False), 0, 5, alignment=0, column_span =4)
 
        # Get all the available ports
         self._ports = [] # Actual port names for connecting
         ports       = [] # Pretty port names for combo box
         
+        default_port = None
+        
         if _comports:
-            for p in _comports():
+            for inx, p in enumerate(_comports()):
                 self._ports.append(p.device)
                 ports      .append(p.description)
+                
+                if 'Arduino' in p.description:
+                    default_port = inx
+                    
 
         ports      .append('Simulation')
         self._ports.append('Simulation')
         
-        # Add port selector to GUI
-        self._label_port = self.grid_top.add(_g.Label('Port:'))
-        self.combo_ports = self.grid_top.add(_g.ComboBox(ports, autosettings_path=name+'.combo_ports'))
+        # Populate the GUI window 
+        self.populate_window(ports, default_port, temperature_limit, show, block)
         
-        # Add BAUD selector to GUI
-        self.grid_top.add(_g.Label('Baud:'))
-        self.combo_baudrates = self.grid_top.add(
-            _g.ComboBox(['1200','2400','4800', '9600', '19200', '38400', '57600', '115200'],default_index=3,autosettings_path=name+'.ombo_baudrates'))
-
-        # Add Timeout selctor to GUI
-        self.grid_top.add(_g.Label('Timeout:'))
-        self.number_timeout = self.grid_top.add(
-            _g.NumberBox(500, dec=True, bounds=(1, None), suffix=' ms',
-                         tip='How long to wait for an answer before giving up (ms).', autosettings_path=name+'.number_timeout')).set_width(100)
-
-        # Add a button to connect to serial port to GUI
-        self.button_connect  = self.grid_top.add(_g.Button('Connect', checkable=True,tip='Connect to the selected serial port.'))
-        self.button_connect.signal_toggled.connect(self._button_connect_toggled)
-
-        ## Add mode buttons to GUI (open and closed loop control modes)
-        self.grid_mid.add(_g.Label('Mode:')).set_style('color: azure')
-        
-        # Open loop (manual) control mode activation button
-        self.button_open_loop  = self.grid_mid.add(_g.Button('Open Loop' ,checkable=True, tip='Enable manual temperature control.')).disable()
-        self.button_open_loop.signal_toggled.connect(self._button_open_loop_toggled)
-        
-        # Closed loop control mode activation button
-        self.button_closed_loop = self.grid_mid.add(_g.Button('Closed Loop',checkable=True, tip='Enable PID temperature control.')).disable()
-        self.button_closed_loop.signal_toggled.connect(self._button_closed_loop_toggled)
-        
-        
-        #self.grid_bot.set_column_stretch(0,10)
-        
-        # Status
-        self.label_status = self.grid_top.add(_g.Label(''))
-
-        # Error
-        self.grid_top.new_autorow()
-        self.label_message = self.grid_top.add(_g.Label(''), column_span=1).set_colors('pink' if _s.settings['dark_theme_qt'] else 'red')
-        
-        # By default the bottom grid is disabled
-        self.grid_bot.disable()
-
-        # Expand the bottom grid
-        #self.window.set_row_stretch(5)
-
-        # Other data
-        self.t0 = None
-
-        # Run the base object stuff and autoload settings
-        _g.BaseObject.__init__(self, autosettings_path=name)
-
-        # Show the window.
-        if show: self.window.show(block)
-          
-        self.window.set_size([0,0])
-        
-        # Data box width
-        box_width = 175
-        
-        # Tab for monitoring measured temperature
-        self.grid_temperature.add(_g.Label('Measured Temperature:'), alignment=2).set_style(style_1)
-        self.number_temperature = self.grid_temperature.add(_g.NumberBox(
-            value=-273.16, suffix='°C', tip='Last recorded temperature value.'), alignment=2).set_width(box_width).disable().set_style(style_1)
-        
-        
-        # Tab for setting the temperature setpoint
-        self.grid_params.add(_g.Label('Setpoint Temperature:'), alignment=1).set_style(style_4)
-        self.number_setpoint = self.grid_params.add(_g.NumberBox(
-            -273.16, bounds=(-273.16, temperature_limit), suffix='°C',signal_changed = self._number_setpoint_changed,
-            tip = 'Targeted temperature.'), alignment=1).set_width(box_width).set_style(style_4)  
-        
-        # New row
-        self.grid_params.new_autorow()
-        
-        # Tab for setting the control period
-        self.grid_params.add(_g.Label('Contol Period:'), alignment=1).set_style(style_5)
-        self.number_period = self.grid_params.add(_g.NumberBox(
-            value = 100, suffix = 'ms', bounds = (0,10000), autosettings_path = name+'.Period',
-            signal_changed = self._number_period_changed,
-            tip = 'Time between calls to the control function.'), alignment=1).set_width(box_width).disable().set_style(style_5)
-
-        # New row
-        self.grid_params.new_autorow()
-        
-        # Tab for monitoring and/or setting the DAC output voltage 
-        self.grid_params.add(_g.Label('DAC output:'), alignment=1).set_style(style_3)
-        self.number_dac = self.grid_params.add(_g.NumberBox(
-            value=0.000, suffix='V', decimals = 4, tip='Arduino DAC output to peltier driver (0-5.000 V).',
-            signal_changed = self._number_dac_changed), alignment=1).set_width(box_width).disable().set_style(style_3)
-
-    
-        # Tabs for band PID value
-        self.grid_params1.add(_g.Label('Band:'),alignment=1).set_style(style_6)
-        self.number_proportional = self.grid_params1.add(_g.NumberBox(
-            value = 10.0, suffix = '°C', bounds = (0,1000000.0), decimals=4,
-            autosettings_path = name+'.Proportional', signal_changed = self._number_parameter_changed,
-            tip = 'Prportional band.'), alignment=1).set_width(box_width).disable().set_style(style_6)
-        
-        # New row
-        self.grid_params1.new_autorow()
-        
-        # Tab for integral time PID value
-        self.grid_params1.add(_g.Label('Integral time:'),alignment=1).set_style(style_6)
-        self.number_integral = self.grid_params1.add(_g.NumberBox(
-            value = 88.29, suffix = 's', bounds = (0,1000000.0), decimals=4,
-            autosettings_path = name+'.integral', signal_changed = self._number_parameter_changed,
-            tip = 'Integral action time.'), alignment=1).set_width(box_width).disable().set_style(style_6)
-        
-        # New row
-        self.grid_params1.new_autorow()
-        
-        # Tab for derivative time PID value
-        self.grid_params1.add(_g.Label('Derivative time:'),alignment=1).set_style(style_6)
-        self.number_derivative = self.grid_params1.add(_g.NumberBox(
-            value = 1.02, suffix = 's', bounds = (0,100.0), decimals=4,
-            autosettings_path = name+'.derivative', signal_changed = self._number_parameter_changed,
-            tip = 'Derivative action time.'), alignment=1).set_width(box_width).disable().set_style(style_6)
-        
-        '''
-        self.grid_params2.add(_g.Label('Constant:'),alignment=1).set_style(style_6)
-        self.number_constant = self.grid_params2.add(_g.NumberBox(
-            value = 1.02, suffix = 's', bounds = (0,100.0), decimals=4,
-            autosettings_path = name+'.offset', 
-            tip = 'Constant term.'), alignment=1).set_width(box_width).disable().set_style(style_6)
-        # New row
-        self.grid_params2.new_autorow()
-        
-        self.grid_params2.add(_g.Label('Offset:'),alignment=1).set_style(style_6)
-        self.number_offset = self.grid_params2.add(_g.NumberBox(
-            value = 1.02, suffix = 's', bounds = (0,100.0), decimals=4,
-            autosettings_path = name+'.offset', 
-            tip = 'Offset term.'), alignment=1).set_width(box_width).disable().set_style(style_6)
-        '''
-        
-        # Make the plotter.
-        self.grid_bot.new_autorow()
-        self.plot = self.grid_bot.add(_g.DataboxPlot(
-            file_type='*.csv',
-            autosettings_path=name+'.plot',
-            delimiter=',', show_logger=True), alignment=0, column_span=10)
-
-        # Timer for collecting data
+        # Create Timer for collecting data 
         self.timer = _g.Timer(interval_ms=1000, single_shot=False)
         self.timer.signal_tick.connect(self._timer_tick)
 
-        # Bottom log file controls
-        self.grid_bot.new_autorow()
-
-        # Finally show it.
+        # Show the GUI!
         self.window.show(block)
 
 
@@ -348,7 +183,7 @@ class pid_controller(_g.BaseObject):
         self.number_period      .set_value(period, block_signals=True)
                 
         # Append this to the databox
-        self.plot.append_row([t, T, S, 100*output_fraction], ckeys=['Time (s)', 'Temperature (C)', 'Setpoint (C)', 'DAC Voltage (%)'],)
+        self.plot.append_row([t, T, T-S, 100*output_fraction], ckeys=['Time (s)', 'Temperature (C)', 'Temperature Error (C)', 'DAC Voltage (%)'],)
         self.plot.plot()        
 
         # Update GUI
@@ -588,7 +423,165 @@ class pid_controller(_g.BaseObject):
         Returns the actual port string from the combo box.
         """
         return self._ports[self.combo_ports.get_index()]
+    
+    
+    def populate_window(self, ports, default_port, temperature_limit, show, block):
+        """
+        All the GUI window populating shoved into one convenient (and out of site) place. 
+        """
+        
+        ## Create partitions in the GUI window ##
+        
+        self.grid_top = self.window.place_object(
+            _g.GridLayout(margins=False),0,0,alignment=1,column_span=2)
+        
+        self.window.new_autorow()
+        self.grid_mid = self.window.place_object(_g.GridLayout(margins=False),0,1,alignment=1,column_span=1) 
+        
+        self.window.new_autorow()
+        self.grid_temperature = self.window.place_object(_g.GridLayout(margins=False),0,3,alignment=1,column_span=1)
+        
+        self.window.new_autorow()
+        self.grid_params = self.window.place_object(_g.GridLayout(margins=False),0,4,alignment=1,column_span=1)
+        
+        self.window.new_autorow()
+        self.grid_params1 = self.window.place_object(_g.GridLayout(margins=False),1,4,alignment=1,column_span=1)
+        
+        self.window.new_autorow()
+        self.grid_bot = self.window.place_object(_g.GridLayout(margins=False),0,5,alignment=0,column_span=4)
+        
+        ## Add widgets (buttons, selectors, ect..) to the GUI ##
+        
+        # Add port selector to GUI 
+        self._label_port = self.grid_top.add(_g.Label('Port:'))
+        self.combo_ports = self.grid_top.add(_g.ComboBox(ports, default_index = default_port, autosettings_path=self.name+'.combo_ports'))
+        
+        # Add BAUD selector to GUI 
+        self.grid_top.add(_g.Label('Baud:'))
+        self.combo_baudrates = self.grid_top.add(
+            _g.ComboBox(['1200','2400','4800', '9600', '19200', '38400', '57600', '115200'],default_index=3,autosettings_path=
+                        self.name+'.combo_baudrates'))
 
+        # Add Timeout selector to GUI 
+        self.grid_top.add(_g.Label('Timeout:'))
+        self.number_timeout = self.grid_top.add(
+            _g.NumberBox(500, dec=True, bounds=(1, None), suffix=' ms',
+                         tip='How long to wait for an answer before giving up (ms).', autosettings_path=self.name+'.number_timeout')).set_width(100)
+
+        # Add a button to connect to serial port to GUI
+        self.button_connect  = self.grid_top.add(_g.Button('Connect', checkable=True,tip='Connect to the selected serial port.'))
+        self.button_connect.signal_toggled.connect(self._button_connect_toggled)
+
+        ## Add mode buttons to GUI (open and closed loop control modes)
+        self.grid_mid.add(_g.Label('Mode:')).set_style('color: azure')
+        
+        # Open loop (manual) control mode activation button
+        self.button_open_loop  = self.grid_mid.add(_g.Button('Open Loop' ,checkable=True, tip='Enable manual temperature control.')).disable()
+        self.button_open_loop.signal_toggled.connect(self._button_open_loop_toggled)
+        
+        # Closed loop control mode activation button
+        self.button_closed_loop = self.grid_mid.add(_g.Button('Closed Loop',checkable=True, tip='Enable PID temperature control.')).disable()
+        self.button_closed_loop.signal_toggled.connect(self._button_closed_loop_toggled)
+        
+        
+        # Status
+        self.label_status = self.grid_top.add(_g.Label(''))
+
+        # Error
+        self.grid_top.new_autorow()
+        self.label_message = self.grid_top.add(_g.Label(''), column_span=1).set_colors('pink' if _s.settings['dark_theme_qt'] else 'red')
+        
+        # By default the bottom grid is disabled
+        self.grid_bot.disable()
+
+
+        # Other data
+        self.t0 = None
+
+        # Run the base object stuff and autoload settings
+        _g.BaseObject.__init__(self, autosettings_path=self.name)
+
+        # Show the window.
+        if show: self.window.show(block)
+          
+        self.window.set_size([0,0])
+        
+        # Data box width
+        box_width = 175
+        
+        ## Create tabs for each data feild we want ##
+        
+        # Tab for monitoring measured temperature
+        self.grid_temperature.add(_g.Label('Measured Temperature:'), alignment=2).set_style(style_1)
+        self.number_temperature = self.grid_temperature.add(_g.NumberBox(
+            value=-273.16, suffix='°C', tip='Last recorded temperature value.'), alignment=2).set_width(box_width).disable().set_style(style_1)
+        
+        
+        # Tab for setting the temperature setpoint
+        self.grid_params.add(_g.Label('Setpoint Temperature:'), alignment=1).set_style(style_4)
+        self.number_setpoint = self.grid_params.add(_g.NumberBox(
+            -273.16, bounds=(-273.16, temperature_limit), suffix='°C',signal_changed = self._number_setpoint_changed,
+            tip = 'Targeted temperature.'), alignment=1).set_width(box_width).set_style(style_4)  
+        
+        # New row
+        self.grid_params.new_autorow()
+        
+        # Tab for setting the control period
+        self.grid_params.add(_g.Label('Contol Period:'), alignment=1).set_style(style_5)
+        self.number_period = self.grid_params.add(_g.NumberBox(
+            value = 100, suffix = 'ms', bounds = (0,10000), autosettings_path = self.name+'.Period',
+            signal_changed = self._number_period_changed,
+            tip = 'Time between calls to the control function.'), alignment=1).set_width(box_width).disable().set_style(style_5)
+
+        # New row
+        self.grid_params.new_autorow()
+        
+        # Tab for monitoring and/or setting the DAC output voltage 
+        self.grid_params.add(_g.Label('DAC output:'), alignment=1).set_style(style_3)
+        self.number_dac = self.grid_params.add(_g.NumberBox(
+            value=0.000, suffix='V', decimals = 4, tip='Arduino DAC output to peltier driver (0-5.000 V).',
+            signal_changed = self._number_dac_changed), alignment=1).set_width(box_width).disable().set_style(style_3)
+    
+        # Tabs for band PID value
+        self.grid_params1.add(_g.Label('Band:'),alignment=1).set_style(style_6)
+        self.number_proportional = self.grid_params1.add(_g.NumberBox(
+            value = 10.0, suffix = '°C', bounds = (0,10.0), decimals=4,
+            autosettings_path = self.name+'.Proportional', signal_changed = self._number_parameter_changed,
+            tip = 'Prportional band.'), alignment=1).set_width(box_width).disable().set_style(style_6)
+        
+        # New row
+        self.grid_params1.new_autorow()
+        
+        # Tab for integral time PID value
+        self.grid_params1.add(_g.Label('Integral time:'),alignment=1).set_style(style_6)
+        self.number_integral = self.grid_params1.add(_g.NumberBox(
+            value = 88.29, suffix = 'ms', bounds = (0,10000.0), decimals=4,
+            autosettings_path = self.name+'.integral', signal_changed = self._number_parameter_changed,
+            tip = 'Integral action time.'), alignment=1).set_width(box_width).disable().set_style(style_6)
+        
+        # New row
+        self.grid_params1.new_autorow()
+        
+        # Tab for derivative time PID value
+        self.grid_params1.add(_g.Label('Derivative time:'),alignment=1).set_style(style_6)
+        self.number_derivative = self.grid_params1.add(_g.NumberBox(
+            value = 1.02, suffix = 'ms', bounds = (0,100.0), decimals=4,
+            autosettings_path = self.name+'.derivative', signal_changed = self._number_parameter_changed,
+            tip = 'Derivative action time.'), alignment=1).set_width(box_width).disable().set_style(style_6)
+        
+        # New row
+        self.grid_bot.new_autorow()
+        
+        ## Make the plotter ##
+        self.plot = self.grid_bot.add(_g.DataboxPlot(
+            file_type='*.csv',
+            autosettings_path=self.name+'.plot',
+            delimiter=',', show_logger=True), alignment=0, column_span=10)
+
+        # Bottom log file controls
+        self.grid_bot.new_autorow()
+        
+        
 
 def _debug(*a):
     if _debug_enabled:
