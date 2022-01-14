@@ -965,7 +965,7 @@
   (symbol (lib_id "power:GNDREF") (at 69.85 93.98 0) (unit 1)
     (in_bom yes) (on_board yes) (fields_autoplaced)
     (uuid 43ee3f03-03f3-420c-96a3-8fb32d9c12c9)
-    (property "Reference" "#PWR?" (id 0) (at 69.85 100.33 0)
+    (property "Reference" "#PWR0104" (id 0) (at 69.85 100.33 0)
       (effects (font (size 1.27 1.27)) hide)
     )
     (property "Value" "GNDREF" (id 1) (at 69.85 99.06 0))
@@ -1218,7 +1218,7 @@
     (property "Reference" "R4" (id 0) (at 64.77 60.9599 0)
       (effects (font (size 1.27 1.27)) (justify left))
     )
-    (property "Value" "10K" (id 1) (at 64.77 63.4999 0)
+    (property "Value" "100K" (id 1) (at 64.77 63.4999 0)
       (effects (font (size 1.27 1.27)) (justify left))
     )
     (property "Footprint" "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P15.24mm_Horizontal" (id 2) (at 60.452 62.23 90)
@@ -1378,6 +1378,9 @@
     (path "/01bccb16-2b69-4d37-9cf1-f97d58666795"
       (reference "#PWR0103") (unit 1) (value "GNDREF") (footprint "")
     )
+    (path "/43ee3f03-03f3-420c-96a3-8fb32d9c12c9"
+      (reference "#PWR0104") (unit 1) (value "GNDREF") (footprint "")
+    )
     (path "/a8d65b79-812a-4e13-bc6a-38fafce26ddf"
       (reference "#PWR0105") (unit 1) (value "-15V") (footprint "")
     )
@@ -1398,9 +1401,6 @@
     )
     (path "/77f5cc2f-33ca-43ae-830a-17b75870e491"
       (reference "#PWR0112") (unit 1) (value "+15V") (footprint "")
-    )
-    (path "/43ee3f03-03f3-420c-96a3-8fb32d9c12c9"
-      (reference "#PWR?") (unit 1) (value "GNDREF") (footprint "")
     )
     (path "/13510096-4c4b-48f8-8107-e23cceecf7d6"
       (reference "C1") (unit 1) (value "100 pF") (footprint "Capacitor_THT:C_Axial_L3.8mm_D2.6mm_P7.50mm_Horizontal")
@@ -1430,7 +1430,7 @@
       (reference "R3") (unit 1) (value "10K") (footprint "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P15.24mm_Horizontal")
     )
     (path "/a226fb1b-5df9-4dca-9160-13ce52ad4833"
-      (reference "R4") (unit 1) (value "10K") (footprint "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P15.24mm_Horizontal")
+      (reference "R4") (unit 1) (value "100K") (footprint "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P15.24mm_Horizontal")
     )
     (path "/611ccfe7-e97a-49e5-a559-7817f61cc3be"
       (reference "R6") (unit 1) (value "470") (footprint "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P15.24mm_Horizontal")

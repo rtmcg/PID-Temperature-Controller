@@ -1,3 +1,4 @@
 (fp_lib_table
   (lib (name "KiCAD_footprints")(type "KiCad")(uri "C:/KiCAD_footprints")(options "")(descr ""))
+  (lib (name "symbol_test")(type "KiCad")(uri "${KIPRJMOD}/symbol_test")(options "")(descr ""))
 )
