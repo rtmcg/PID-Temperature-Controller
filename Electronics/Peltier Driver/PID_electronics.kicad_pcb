@@ -186,6 +186,25 @@
       (net 4 "GNDREF") (pinfunction "Pin_3") (pintype "passive") (tstamp ca670c5d-f8a0-4f08-95fa-28a35c38f09a))
   )
 
+  (footprint "KiCAD_footprints:mounting hole" (layer "F.Cu")
+    (tedit 61E88529) (tstamp 2604de0b-4863-427d-ae66-515793f5488e)
+    (at 83.9216 76.2254)
+    (attr through_hole)
+    (fp_text reference "REF**" (at 0 -0.5 unlocked) (layer "F.SilkS") hide
+      (effects (font (size 1 1) (thickness 0.15)))
+      (tstamp 94043291-9a7a-4fc3-a585-f77adb4a7255)
+    )
+    (fp_text value "mounting hole" (at 0 1 unlocked) (layer "F.Fab") hide
+      (effects (font (size 1 1) (thickness 0.15)))
+      (tstamp 30c7d902-a521-4078-8e02-dbcc38774bd0)
+    )
+    (fp_text user "${REFERENCE}" (at 0 2.5 unlocked) (layer "F.Fab") hide
+      (effects (font (size 1 1) (thickness 0.15)))
+      (tstamp f5be3b71-cdb6-44fb-94c4-f8768fcdb417)
+    )
+    (pad "" np_thru_hole circle (at 0 -5.08) (size 3 3) (drill 3) (layers *.Mask) (tstamp 1bcadabf-49fd-4f15-9703-c271281f3d0c))
+  )
+
   (footprint "Package_TO_SOT_THT:TO-92_Inline" (layer "F.Cu")
     (tedit 5A1DD157) (tstamp 2a138c15-b5ba-42d5-b3a6-5ed7c2526e0a)
     (at 114.3 83.82)
@@ -228,6 +247,25 @@
       (scale (xyz 1 1 1))
       (rotate (xyz 0 0 0))
     )
+  )
+
+  (footprint "KiCAD_footprints:mounting hole" (layer "F.Cu")
+    (tedit 61E88529) (tstamp 3662a52d-8a82-48c9-9b54-f1c6c048b9a9)
+    (at 154.9908 76.2254)
+    (attr through_hole)
+    (fp_text reference "REF**" (at 0 -0.5 unlocked) (layer "F.SilkS") hide
+      (effects (font (size 1 1) (thickness 0.15)))
+      (tstamp 94043291-9a7a-4fc3-a585-f77adb4a7255)
+    )
+    (fp_text value "mounting hole" (at 0 1 unlocked) (layer "F.Fab") hide
+      (effects (font (size 1 1) (thickness 0.15)))
+      (tstamp 30c7d902-a521-4078-8e02-dbcc38774bd0)
+    )
+    (fp_text user "${REFERENCE}" (at 0 2.5 unlocked) (layer "F.Fab") hide
+      (effects (font (size 1 1) (thickness 0.15)))
+      (tstamp f5be3b71-cdb6-44fb-94c4-f8768fcdb417)
+    )
+    (pad "" np_thru_hole circle (at 0 -5.08) (size 3 3) (drill 3) (layers *.Mask) (tstamp 1bcadabf-49fd-4f15-9703-c271281f3d0c))
   )
 
   (footprint "KiCAD_footprints:1935190" (layer "F.Cu")
@@ -389,7 +427,7 @@
     (property "Sheetname" "")
     (path "/a226fb1b-5df9-4dca-9160-13ce52ad4833")
     (attr through_hole)
-    (fp_text reference "R4" (at 7.62 2.54) (layer "F.SilkS")
+    (fp_text reference "R4" (at 7.5692 -3.0734) (layer "F.SilkS")
       (effects (font (size 1 1) (thickness 0.15)))
       (tstamp a7931472-8eb9-46f7-bf1d-76ac50946cbd)
     )
@@ -533,6 +571,25 @@
       (scale (xyz 1 1 1))
       (rotate (xyz 0 0 0))
     )
+  )
+
+  (footprint "KiCAD_footprints:mounting hole" (layer "F.Cu")
+    (tedit 61E88529) (tstamp 73720fb1-4362-40a7-b9c9-f3afe2df006b)
+    (at 83.8962 111.8362)
+    (attr through_hole)
+    (fp_text reference "REF**" (at 0 -0.5 unlocked) (layer "F.SilkS") hide
+      (effects (font (size 1 1) (thickness 0.15)))
+      (tstamp 94043291-9a7a-4fc3-a585-f77adb4a7255)
+    )
+    (fp_text value "mounting hole" (at 0 1 unlocked) (layer "F.Fab") hide
+      (effects (font (size 1 1) (thickness 0.15)))
+      (tstamp 30c7d902-a521-4078-8e02-dbcc38774bd0)
+    )
+    (fp_text user "${REFERENCE}" (at 0 2.5 unlocked) (layer "F.Fab") hide
+      (effects (font (size 1 1) (thickness 0.15)))
+      (tstamp f5be3b71-cdb6-44fb-94c4-f8768fcdb417)
+    )
+    (pad "" np_thru_hole circle (at 0 -5.08) (size 3 3) (drill 3) (layers *.Mask) (tstamp 1bcadabf-49fd-4f15-9703-c271281f3d0c))
   )
 
   (footprint "Capacitor_THT:C_Axial_L3.8mm_D2.6mm_P7.50mm_Horizontal" (layer "F.Cu")
@@ -727,6 +784,25 @@
     )
   )
 
+  (footprint "KiCAD_footprints:mounting hole" (layer "F.Cu")
+    (tedit 61E88529) (tstamp e4e3309b-58bc-431f-838d-6a183af0c392)
+    (at 155.0924 111.8262)
+    (attr through_hole)
+    (fp_text reference "REF**" (at 0 -0.5 unlocked) (layer "F.SilkS") hide
+      (effects (font (size 1 1) (thickness 0.15)))
+      (tstamp 94043291-9a7a-4fc3-a585-f77adb4a7255)
+    )
+    (fp_text value "mounting hole" (at 0 1 unlocked) (layer "F.Fab") hide
+      (effects (font (size 1 1) (thickness 0.15)))
+      (tstamp 30c7d902-a521-4078-8e02-dbcc38774bd0)
+    )
+    (fp_text user "${REFERENCE}" (at 0 2.5 unlocked) (layer "F.Fab") hide
+      (effects (font (size 1 1) (thickness 0.15)))
+      (tstamp f5be3b71-cdb6-44fb-94c4-f8768fcdb417)
+    )
+    (pad "" np_thru_hole circle (at 0 -5.08) (size 3 3) (drill 3) (layers *.Mask) (tstamp 1bcadabf-49fd-4f15-9703-c271281f3d0c))
+  )
+
   (footprint "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P15.24mm_Horizontal" (layer "F.Cu")
     (tedit 5AE5139B) (tstamp f1af136d-fc23-40d6-9ece-115c567a709f)
     (at 142.24 99.06 90)
@@ -823,14 +899,14 @@
     )
   )
 
-  (gr_circle (center 151.13 105.019579) (end 151.765 105.019579) (layer "F.SilkS") (width 0.15) (fill solid) (tstamp 9b84db75-decc-418f-80b8-9703cc547aae))
-  (gr_circle (center 154.549579 105.019579) (end 154.799579 105.019579) (layer "F.SilkS") (width 0.15) (fill solid) (tstamp c8ab8246-b2bb-4b06-b45e-2548482466fd))
-  (gr_circle (center 151.13 105.019579) (end 149.86 108.194579) (layer "F.SilkS") (width 0.15) (fill none) (tstamp da481376-0e49-44d3-91b8-aaa39b869dd1))
+  (gr_circle (center 146.5072 104.9528) (end 147.1422 104.9528) (layer "F.SilkS") (width 0.15) (fill solid) (tstamp 9b84db75-decc-418f-80b8-9703cc547aae))
+  (gr_circle (center 149.926779 104.9528) (end 150.176779 104.9528) (layer "F.SilkS") (width 0.15) (fill solid) (tstamp c8ab8246-b2bb-4b06-b45e-2548482466fd))
+  (gr_circle (center 146.5072 104.9528) (end 145.2372 108.1278) (layer "F.SilkS") (width 0.15) (fill none) (tstamp da481376-0e49-44d3-91b8-aaa39b869dd1))
   (gr_line (start 160.02 66.04) (end 160.02 111.76) (layer "Edge.Cuts") (width 0.1) (tstamp 5e2b9e3e-9b31-45f9-ac18-df50cd983920))
   (gr_line (start 160.02 111.76) (end 78.74 111.76) (layer "Edge.Cuts") (width 0.1) (tstamp d4fb2dc2-55a7-4a7f-991f-a40d55df2ba4))
   (gr_line (start 78.74 66.04) (end 160.02 66.04) (layer "Edge.Cuts") (width 0.1) (tstamp ec70fddf-0c30-42a6-a706-4e33c547af27))
   (gr_line (start 78.74 111.76) (end 78.74 66.04) (layer "Edge.Cuts") (width 0.1) (tstamp f430e5a5-432d-4100-b191-f12fee4a3208))
-  (gr_text "PID Lab - Peltier Driver" (at 143.51 69.85) (layer "F.SilkS") (tstamp f285aa52-e974-4a68-ac10-7b05914fc456)
+  (gr_text "PID Lab - Peltier Driver\nMcGill University - PHYS 339" (at 101.0666 69.5198) (layer "F.SilkS") (tstamp f285aa52-e974-4a68-ac10-7b05914fc456)
     (effects (font (size 1 1) (thickness 0.15)))
   )
 
