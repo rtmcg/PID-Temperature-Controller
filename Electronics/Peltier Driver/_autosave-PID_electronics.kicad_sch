@@ -1082,7 +1082,7 @@
   (symbol (lib_id "Device:C_Small") (at 163.83 60.96 0) (mirror y) (unit 1)
     (in_bom yes) (on_board yes)
     (uuid 29bc48cf-d8fe-4214-b2d7-759437472a93)
-    (property "Reference" "C6" (id 0) (at 160.02 60.96 0)
+    (property "Reference" "C7" (id 0) (at 160.02 60.96 0)
       (effects (font (size 0.8 0.8)) (justify right))
     )
     (property "Value" "C_Small" (id 1) (at 161.29 62.2362 0)
@@ -1624,7 +1624,7 @@
   (symbol (lib_id "Device:C_Small") (at 163.83 83.82 0) (unit 1)
     (in_bom yes) (on_board yes)
     (uuid dbe3ed1d-1e50-4ccd-ba3e-6e66d24024b4)
-    (property "Reference" "C7" (id 0) (at 160.02 83.82 0)
+    (property "Reference" "C8" (id 0) (at 160.02 83.82 0)
       (effects (font (size 0.8 0.8)) (justify left))
     )
     (property "Value" "C_Small" (id 1) (at 166.37 85.0962 0)
@@ -1798,14 +1798,14 @@
     (path "/cec8ccbc-5608-4813-ac32-152661d90d72"
       (reference "C5") (unit 1) (value "1000 uF") (footprint "Capacitor_THT:CP_Radial_D10.0mm_P5.00mm")
     )
-    (path "/29bc48cf-d8fe-4214-b2d7-759437472a93"
-      (reference "C6") (unit 1) (value "C_Small") (footprint "Capacitor_THT:C_Axial_L3.8mm_D2.6mm_P7.50mm_Horizontal")
-    )
     (path "/8ea27319-6561-48d0-833e-434a565ff3b2"
       (reference "C6") (unit 1) (value "C_Small") (footprint "Capacitor_THT:CP_Radial_D10.0mm_P5.00mm")
     )
-    (path "/dbe3ed1d-1e50-4ccd-ba3e-6e66d24024b4"
+    (path "/29bc48cf-d8fe-4214-b2d7-759437472a93"
       (reference "C7") (unit 1) (value "C_Small") (footprint "Capacitor_THT:C_Axial_L3.8mm_D2.6mm_P7.50mm_Horizontal")
+    )
+    (path "/dbe3ed1d-1e50-4ccd-ba3e-6e66d24024b4"
+      (reference "C8") (unit 1) (value "C_Small") (footprint "Capacitor_THT:C_Axial_L3.8mm_D2.6mm_P7.50mm_Horizontal")
     )
     (path "/eecd43dc-9458-46d0-afaa-bc2f0fdbe268"
       (reference "J1") (unit 1) (value "Conn_01x05") (footprint "KiCAD_footprints:1935190")
