@@ -1082,7 +1082,7 @@
   (symbol (lib_id "Device:C_Small") (at 163.83 60.96 0) (mirror y) (unit 1)
     (in_bom yes) (on_board yes)
     (uuid 29bc48cf-d8fe-4214-b2d7-759437472a93)
-    (property "Reference" "C6" (id 0) (at 160.02 60.96 0)
+    (property "Reference" "C7" (id 0) (at 160.02 60.96 0)
       (effects (font (size 0.8 0.8)) (justify right))
     )
     (property "Value" "C_Small" (id 1) (at 161.29 62.2362 0)
@@ -1103,7 +1103,7 @@
     (uuid 2a9cad4f-2bb5-49ad-b88c-871995bf30a0)
     (property "Reference" "U1" (id 0) (at 144.145 64.77 0))
     (property "Value" "LF412" (id 1) (at 144.145 62.23 0))
-    (property "Footprint" "Package_DIP:DIP-8_W10.16mm_LongPads" (id 2) (at 151.765 72.39 0)
+    (property "Footprint" "Package_DIP:DIP-8_W7.62mm_Socket_LongPads" (id 2) (at 151.765 72.39 0)
       (effects (font (size 1.27 1.27)) hide)
     )
     (property "Datasheet" "~" (id 3) (at 151.765 72.39 0)
@@ -1157,7 +1157,7 @@
     (property "Value" "LF412" (id 1) (at 151.765 73.6599 0)
       (effects (font (size 1.27 1.27)) (justify left) hide)
     )
-    (property "Footprint" "Package_DIP:DIP-8_W10.16mm_LongPads" (id 2) (at 153.035 72.39 0)
+    (property "Footprint" "Package_DIP:DIP-8_W7.62mm_Socket_LongPads" (id 2) (at 153.035 72.39 0)
       (effects (font (size 1.27 1.27)) hide)
     )
     (property "Datasheet" "~" (id 3) (at 153.035 72.39 0)
@@ -1190,7 +1190,7 @@
     (uuid 532cb9ef-7fac-483b-aaf5-b83d764d0176)
     (property "Reference" "U1" (id 0) (at 193.675 72.39 0))
     (property "Value" "LF412" (id 1) (at 193.675 69.85 0))
-    (property "Footprint" "Package_DIP:DIP-8_W10.16mm_LongPads" (id 2) (at 186.055 74.93 0)
+    (property "Footprint" "Package_DIP:DIP-8_W7.62mm_Socket_LongPads" (id 2) (at 186.055 74.93 0)
       (effects (font (size 1.27 1.27)) hide)
     )
     (property "Datasheet" "~" (id 3) (at 186.055 74.93 0)
@@ -1624,7 +1624,7 @@
   (symbol (lib_id "Device:C_Small") (at 163.83 83.82 0) (unit 1)
     (in_bom yes) (on_board yes)
     (uuid dbe3ed1d-1e50-4ccd-ba3e-6e66d24024b4)
-    (property "Reference" "C7" (id 0) (at 160.02 83.82 0)
+    (property "Reference" "C8" (id 0) (at 160.02 83.82 0)
       (effects (font (size 0.8 0.8)) (justify left))
     )
     (property "Value" "C_Small" (id 1) (at 166.37 85.0962 0)
@@ -1798,14 +1798,14 @@
     (path "/cec8ccbc-5608-4813-ac32-152661d90d72"
       (reference "C5") (unit 1) (value "1000 uF") (footprint "Capacitor_THT:CP_Radial_D10.0mm_P5.00mm")
     )
-    (path "/29bc48cf-d8fe-4214-b2d7-759437472a93"
-      (reference "C6") (unit 1) (value "C_Small") (footprint "Capacitor_THT:C_Axial_L3.8mm_D2.6mm_P7.50mm_Horizontal")
-    )
     (path "/8ea27319-6561-48d0-833e-434a565ff3b2"
       (reference "C6") (unit 1) (value "C_Small") (footprint "Capacitor_THT:CP_Radial_D10.0mm_P5.00mm")
     )
-    (path "/dbe3ed1d-1e50-4ccd-ba3e-6e66d24024b4"
+    (path "/29bc48cf-d8fe-4214-b2d7-759437472a93"
       (reference "C7") (unit 1) (value "C_Small") (footprint "Capacitor_THT:C_Axial_L3.8mm_D2.6mm_P7.50mm_Horizontal")
+    )
+    (path "/dbe3ed1d-1e50-4ccd-ba3e-6e66d24024b4"
+      (reference "C8") (unit 1) (value "C_Small") (footprint "Capacitor_THT:C_Axial_L3.8mm_D2.6mm_P7.50mm_Horizontal")
     )
     (path "/eecd43dc-9458-46d0-afaa-bc2f0fdbe268"
       (reference "J1") (unit 1) (value "Conn_01x05") (footprint "KiCAD_footprints:1935190")
@@ -1844,13 +1844,13 @@
       (reference "R10") (unit 1) (value "R") (footprint "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal")
     )
     (path "/2a9cad4f-2bb5-49ad-b88c-871995bf30a0"
-      (reference "U1") (unit 1) (value "LF412") (footprint "Package_DIP:DIP-8_W10.16mm_LongPads")
+      (reference "U1") (unit 1) (value "LF412") (footprint "Package_DIP:DIP-8_W7.62mm_Socket_LongPads")
     )
     (path "/532cb9ef-7fac-483b-aaf5-b83d764d0176"
-      (reference "U1") (unit 2) (value "LF412") (footprint "Package_DIP:DIP-8_W10.16mm_LongPads")
+      (reference "U1") (unit 2) (value "LF412") (footprint "Package_DIP:DIP-8_W7.62mm_Socket_LongPads")
     )
     (path "/4d16f993-014c-4d7a-afc5-3442f5282af5"
-      (reference "U1") (unit 3) (value "LF412") (footprint "Package_DIP:DIP-8_W10.16mm_LongPads")
+      (reference "U1") (unit 3) (value "LF412") (footprint "Package_DIP:DIP-8_W7.62mm_Socket_LongPads")
     )
   )
 )
