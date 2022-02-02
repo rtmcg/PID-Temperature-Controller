@@ -2,7 +2,7 @@
 #include <Adafruit_MCP4725.h>
 #include <Adafruit_MAX31865.h>
 
-#define BAUD 9600
+#define BAUD 115200
 #define POLARITY_PIN  8
 
 #define RREF      4300.0  // The value of the Rref resistor in the RTD package.

@@ -459,7 +459,7 @@ class pid_controller(_g.BaseObject):
         # Add BAUD selector to GUI 
         self.grid_top.add(_g.Label('Baud:'))
         self.combo_baudrates = self.grid_top.add(
-            _g.ComboBox(['1200','2400','4800', '9600', '19200', '38400', '57600', '115200'],default_index=3,autosettings_path=
+            _g.ComboBox(['1200','2400','4800', '9600', '19200', '38400', '57600', '115200'],default_index=7,autosettings_path=
                         self.name+'.combo_baudrates'))
 
         # Add Timeout selector to GUI 
