@@ -7,7 +7,7 @@
   (title_block
     (title "Peltier PID controller lab electronics ")
     (date "2022-01-06")
-    (rev "1")
+    (rev "2")
     (company "McGill University")
   )
 
@@ -1398,7 +1398,7 @@
     (property "Value" "2N7000" (id 1) (at 139.065 105.41 0)
       (effects (font (size 1.27 1.27)) (justify left))
     )
-    (property "Footprint" "Package_TO_SOT_THT:TO-92_Inline" (id 2) (at 137.795 103.505 0)
+    (property "Footprint" "Package_TO_SOT_THT:TO-92_HandSolder" (id 2) (at 137.795 103.505 0)
       (effects (font (size 1.27 1.27) italic) (justify left) hide)
     )
     (property "Datasheet" "https://www.onsemi.com/pub/Collateral/NDS7002A-D.PDF" (id 3) (at 132.715 101.6 0)
@@ -1814,7 +1814,7 @@
       (reference "J2") (unit 1) (value "Conn_01x03") (footprint "KiCAD_footprints:1935174")
     )
     (path "/8862d4f2-229b-4cfb-89d1-19b80d2e8ad2"
-      (reference "Q3") (unit 1) (value "2N7000") (footprint "Package_TO_SOT_THT:TO-92_Inline")
+      (reference "Q3") (unit 1) (value "2N7000") (footprint "Package_TO_SOT_THT:TO-92_HandSolder")
     )
     (path "/7ce74685-9a6c-4496-92be-75c552d48a24"
       (reference "R1") (unit 1) (value "10K") (footprint "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal")
