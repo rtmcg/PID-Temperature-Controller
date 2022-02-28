@@ -70,7 +70,6 @@ class pid_controller(_g.BaseObject):
         # Create GUI window
         self.window   = _g.Window(self.name, autosettings_path=name+'.window',event_close = self._window_close)
         
-
        # Get all the available ports
         self._ports = [] # Actual port names for connecting
         ports       = [] # Pretty port names for combo box
@@ -86,8 +85,13 @@ class pid_controller(_g.BaseObject):
                     default_port = inx
                     
 
+        # Append simulation port
         ports      .append('Simulation')
         self._ports.append('Simulation')
+        
+        # Append refresh port
+        ports      .append('Refresh - Update Ports List')
+        self._ports.append('Refresh - Update Ports List')
         
         # Populate the GUI window 
         self.populate_window(ports, default_port, temperature_limit, show, block)
@@ -404,7 +408,52 @@ class pid_controller(_g.BaseObject):
             
             _debug('Open loop mode disabled.')
 
-    
+    def _ports_changed(self):
+        """
+        Refreshes the list of availible serial ports in the GUI.
+
+        """
+        if self.get_selected_port() == 'Refresh - Update Ports List':
+            
+            len_ports = len(self.combo_ports.get_all_items())
+            
+            # Clear existing ports
+            if(len_ports > 1): # Stop recursion!
+                for n in range(len_ports):
+                    self.combo_ports.remove_item(0)
+            else:
+                return
+                self.combo_ports.remove_item(0)
+                 
+            self._ports = [] # Actual port names for connecting
+            ports       = [] # Pretty port names for combo box
+                
+            default_port = 0
+             
+            # Get all the available ports
+            if _comports:
+                for inx, p in enumerate(_comports()):
+                    self._ports.append(p.device)
+                    ports      .append(p.description)
+                    
+                    if 'Arduino' in p.description:
+                        default_port = inx
+                        
+            # Append simulation port
+            ports      .append('Simulation')
+            self._ports.append('Simulation')
+            
+            # Append refresh port
+            ports      .append('Refresh - Update Ports List')
+            self._ports.append('Refresh - Update Ports List')
+             
+            # Add the new list of ports
+            for item in ports:
+                self.combo_ports.add_item(item)
+             
+            # Set the new default port
+            self.combo_ports.set_index(default_port)
+        
     def _new_exception(self, a):
         """
         Just updates the status with the exception.
@@ -427,6 +476,8 @@ class pid_controller(_g.BaseObject):
         Returns the actual port string from the combo box.
         """
         return self._ports[self.combo_ports.get_index()]
+    
+    
     
     
     def populate_window(self, ports, default_port, temperature_limit, show, block):
@@ -459,6 +510,7 @@ class pid_controller(_g.BaseObject):
         # Add port selector to GUI 
         self._label_port = self.grid_top.add(_g.Label('Port:'))
         self.combo_ports = self.grid_top.add(_g.ComboBox(ports, default_index = default_port, autosettings_path=self.name+'.combo_ports'))
+        self.combo_ports.signal_changed.connect(self._ports_changed)
         
         # Add BAUD selector to GUI 
         self.grid_top.add(_g.Label('Baud:'))
