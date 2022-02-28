@@ -212,6 +212,7 @@ class pid_controller(_g.BaseObject):
                 self.label_status.set_colors('pink' if _s.settings['dark_theme_qt'] else 'red')
                 self.button_connect.set_colors(background='pink')
             else:
+                # Display connection status to user
                 self.label_status.set_text('Connected').set_colors('white' if _s.settings['dark_theme_qt'] else 'blue')
                 
                 self.button_open_loop  .enable()
@@ -272,6 +273,9 @@ class pid_controller(_g.BaseObject):
             self.combo_baudrates.enable()
             self.combo_ports.enable()
             self.number_timeout.enable()
+            
+            # Display connection status to user
+            self.label_status.set_text('Disconnected').set_colors('white' if _s.settings['dark_theme_qt'] else 'blue')
     
     
     def _button_closed_loop_toggled(self):
