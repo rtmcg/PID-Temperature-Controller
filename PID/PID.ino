@@ -3,7 +3,7 @@
 #include <Adafruit_MAX31865.h>
 
 #define BAUD 115200
-#define POLARITY_PIN  8
+#define POLARITY_PIN  6
 
 #define RREF      4300.0  // The value of the Rref resistor in the RTD package.
 #define RNOMINAL  1000.0  // The 'nominal' 0-degrees-C resistance of the sensor
@@ -32,7 +32,7 @@ Adafruit_MCP4725 dac;    // New DAC object
 int dac_output = 0;          // The MCP4725 is a 12-bit DAC, so this variable must be <= 2**12-1 = 4095 
 
 /** Setup MAX 31865 resistance-to-digital converter **/
-Adafruit_MAX31865 rtd = Adafruit_MAX31865(10, 11, 12, 13); // Use software SPI: CS, DI, DO, CLK
+Adafruit_MAX31865 rtd = Adafruit_MAX31865(13, 12, 11, 10); // Use software SPI: CS, DI, DO, CLK
 
 /** Serial data handling **/
 const byte data_size = 64;        // Size of the data buffer receiving from the serial line 
