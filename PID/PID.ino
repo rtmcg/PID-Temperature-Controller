@@ -1,3 +1,10 @@
+/*
+ * <PID.ino> to be run with <pid_controller.py>
+ * For use in the McGill University physics course PHYS 339.
+ * Written by Brandon Ruffolo in 2021-22.
+ * brandon.ruffolo@mcgill.ca
+*/
+
 #include <Wire.h>
 #include <Adafruit_MCP4725.h>
 #include <Adafruit_MAX31865.h>
@@ -32,7 +39,7 @@ Adafruit_MCP4725 dac;    // New DAC object
 int dac_output = 0;          // The MCP4725 is a 12-bit DAC, so this variable must be <= 2**12-1 = 4095 
 
 /** Setup MAX 31865 resistance-to-digital converter **/
-Adafruit_MAX31865 rtd = Adafruit_MAX31865(10, 11, 12, 13); // Use software SPI: CS, DI, DO, CLK
+Adafruit_MAX31865 rtd = Adafruit_MAX31865(13, 12, 11, 10); // Use software SPI: CS, DI, DO, CLK
 
 /** Serial data handling **/
 const byte data_size = 64;        // Size of the data buffer receiving from the serial line 
@@ -57,7 +64,7 @@ void control(){
    */ 
   
   if (error >= band/2) {
-    set_dac(4095);
+    set_dac(-4095);
   } 
   else if (error < -1*band/2) {
     set_dac(0);

@@ -1,3 +1,12 @@
+'''
+<pid_controller_api.py>
+For connection to an Arduino microcontroller running <PID.ino>
+
+For use in the McGill University physics course PHYS 339.
+Written by Brandon Ruffolo in 2021-22.
+brandon.ruffolo@mcgill.ca
+'''
+
 import mcphysics   as _mp
 import time as _time
 

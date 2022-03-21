@@ -1,3 +1,12 @@
+'''
+<pid_controller.py> to be run with <pid_controller_api.py>
+Connects to an Arduino microcontroller running <PID.ino>
+
+For use in the McGill University physics course PHYS 339.
+Written by Brandon Ruffolo in 2021-22.
+brandon.ruffolo@mcgill.ca
+'''
+
 import mcphysics   as _mp
 import spinmob.egg as _egg
 import traceback   as _traceback
@@ -36,11 +45,11 @@ class pid_controller(_g.BaseObject):
     
     Parameters
     ----------
-    name='auber_syl53x2p' : str
+    name='Arduino_PID' : str
         Unique name to give this instance, so that its settings will not
         collide with other egg objects.
     
-    temperature_limit=450 : float
+    temperature_limit=85 : float
         Upper limit on the temperature setpoint (C).
     
     show=True : bool
@@ -52,7 +61,7 @@ class pid_controller(_g.BaseObject):
     window_size=[1,1] : list
         Dimensions of the window.
     """
-    def __init__(self, name='Arduino_PID', api_class = pid_api, temperature_limit=100, show=True, block=False, window_size=None):
+    def __init__(self, name='Arduino_PID', api_class = pid_api, temperature_limit=85, show=True, block=False, window_size=None):
         
         if not _mp._serial: _s._warn('You need to install pyserial to use the Arduino based PID temperature controller.')
         
